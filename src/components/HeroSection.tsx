@@ -8,14 +8,7 @@ export default function HeroSection() {
           <span className={styles.taglineBadge}>
             EST. 2025 • Kitchener, ON
           </span>
-          <h1 
-            className="text-[clamp(2.5rem,5vw,4.5rem)] leading-[1.05] font-bold mb-6 font-[family-name:var(--font-space-grotesk)] text-transparent bg-clip-text" 
-            style={{ 
-              backgroundImage: "linear-gradient(to right, #fff 20%, #ffaa40, #f43f5e)",
-              WebkitBackgroundClip: "text",
-              backgroundClip: "text"
-            }}
-          >
+          <h1 className={styles.heroTitle}>
             Digital tools for the<br />
             spaces in between.
           </h1>
