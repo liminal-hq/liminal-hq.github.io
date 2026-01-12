@@ -1,0 +1,47 @@
+.projectCard {
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.01) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 3.5rem;
+  margin-bottom: 2.5rem;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s ease;
+}
+
+.projectCard:hover {
+  border-color: transparent;
+  box-shadow: 0 0 0 1px rgba(255, 170, 64, 0.5), 0 20px 50px rgba(0, 0, 0, 0.4);
+}
+
+.projectCard::before {
+  content: "";
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(
+    circle,
+    rgba(255, 170, 64, 0.15) 0%,
+    transparent 70%
+  );
+  opacity: 0.5;
+  transition: opacity 0.4s, transform 0.4s;
+  pointer-events: none;
+}
+
+.projectCard:hover::before {
+  opacity: 0.8;
+  transform: scale(1.1);
+}
+
+@media (max-width: 768px) {
+  .projectCard {
+    padding: 2rem;
+  }
+}

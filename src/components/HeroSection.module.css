@@ -1,0 +1,103 @@
+.heroBanner {
+  position: relative;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  display: grid;
+  grid-template-columns: 1.8fr 1fr;
+  gap: 1rem;
+  align-items: center;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(20px);
+}
+
+@media (max-width: 768px) {
+  .heroBanner {
+    grid-template-columns: 1fr;
+    text-align: left;
+  }
+}
+
+.heroBanner::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.03) 1px,
+      transparent 1px
+    ),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  z-index: 0;
+  mask-image: radial-gradient(circle at 70% 50%, black 0%, transparent 80%);
+  -webkit-mask-image: radial-gradient(
+    circle at 70% 50%,
+    black 0%,
+    transparent 80%
+  );
+  pointer-events: none;
+}
+
+.taglineBadge {
+  font-family: var(--font-space-grotesk), sans-serif;
+  font-size: 0.8rem;
+  color: #fff;
+  background: linear-gradient(90deg, #a78bfa, #f43f5e);
+  padding: 6px 14px;
+  border-radius: 30px;
+  margin-bottom: 2rem;
+  display: inline-block;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  box-shadow: 0 4px 20px rgba(167, 139, 250, 0.3);
+  width: fit-content;
+}
+
+.thresholdGate {
+  width: 100%;
+  height: 300px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(167, 139, 250, 0.1) 0%,
+    transparent 70%
+  );
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.gateFrame {
+  position: absolute;
+  width: 180px;
+  height: 240px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 0 30px rgba(167, 139, 250, 0.1);
+  transform: perspective(800px) rotateY(-15deg);
+}
+
+.gateFrame::after {
+  content: "";
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  right: 20px;
+  bottom: 20px;
+  border: 1px solid rgba(255, 170, 64, 0.2);
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(255, 170, 64, 0.1);
+}
+
+.gateLight {
+  width: 2px;
+  height: 150px;
+  background: linear-gradient(to bottom, transparent, #fff, transparent);
+  position: absolute;
+  filter: blur(1px);
+  opacity: 0.8;
+}
