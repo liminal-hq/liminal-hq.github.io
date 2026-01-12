@@ -9,9 +9,9 @@ An independent studio building local-first applications.
 - **[City Sim 1000](https://github.com/ScottMorris/city-sim-1000)** – Low-poly city simulation in the browser.
 - **[SMDU](https://github.com/ScottMorris/smdu)** – Terminal disk usage analyser.
 
-## Architecture
+## Site Architecture
 
-Built with modern web standards:
+This portfolio is built with modern web standards:
 
 - **Next.js 16** (App Router, Static Export)
 - **React 19**
