@@ -11,11 +11,7 @@ export default function Footer() {
       <div className="text-right">
         <p>&copy; 2026 Liminal HQ Inc.</p>
         <p className="mt-2">
-          <a href="#" className="hover:text-white transition-colors">
-            Twitter
-          </a>{" "}
-          &nbsp;•&nbsp;{" "}
-          <a href="#" className="hover:text-white transition-colors">
+          <a href="https://github.com/liminal-hq" className="hover:text-white transition-colors">
             GitHub
           </a>
         </p>
