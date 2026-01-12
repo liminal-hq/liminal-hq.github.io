@@ -13,8 +13,8 @@ export default function WorkSection() {
         </span>
         <h3 className="text-[2.5rem] mb-4 text-white">Liminal Notes</h3>
         <p className="max-w-[650px] text-[#9ca3af] mb-10 text-[1.15rem]">
-          A graph-based, local-first knowledge management environment.
-          Built with Rust and Tauri for speed, designed with Markdown for longevity.
+          Local-first, Markdown-based note-taking that treats your data as the source of truth.
+          Built with Tauri, React, and Rust — designed to be fast, private, and extensible.
         </p>
         <a
           href="https://github.com/ScottMorris/liminal-notes"
