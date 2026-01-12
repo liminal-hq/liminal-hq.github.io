@@ -32,6 +32,40 @@
   }
 }
 
+.thresholdSlit {
+  position: absolute;
+  top: 15%;
+  bottom: 15%;
+  left: 50%;
+  width: 2px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(255, 255, 255, 0.9),
+    transparent
+  );
+  transform: translateX(-50%);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+  animation: shimmer 4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    opacity: 0.5;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 25px rgba(255, 255, 255, 0.8),
+      0 0 50px rgba(255, 170, 64, 0.2);
+  }
+  100% {
+    opacity: 0.5;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+  }
+}
+
+/* Responsive Styles */
 .heroBanner::before {
   content: "";
   position: absolute;
