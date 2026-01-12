@@ -22,7 +22,7 @@ export default function HeroSection() {
         <div className="relative h-full min-h-[300px] flex items-center justify-center z-[1] hidden md:flex">
           <div className={styles.thresholdGate}>
             <div className={styles.gateFrame}></div>
-            <div className={styles.gateLight}></div>
+            <div className={styles.thresholdSlit}></div>
           </div>
         </div>
       </div>
