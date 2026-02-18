@@ -2,6 +2,7 @@
 
 **Digital tools for the spaces in between.**
 An independent studio building local-first applications.
+We build software that feels more human without becoming less powerful.
 
 ## Projects
 
@@ -30,3 +31,29 @@ Open [http://localhost:3000](http://localhost:3000) to view locally.
 ## Deployment
 
 Automated via **GitHub Actions** to GitHub Pages. Pushing to `main` builds and deploys the `out/` directory.
+
+## Blog
+
+Blog posts live in `content/blog` as Markdown files with front matter.
+
+### Add a new post
+
+1. Copy `content/blog/_template.md` to a new file named `YYYY-MM-DD-your-slug.md`.
+2. Fill in front matter fields:
+   - `title`
+   - `date` (format: `YYYY-MM-DD`)
+   - `slug` (URL path, for example `wear-os-tauri`)
+   - `excerpt`
+   - `tags` (string array)
+   - `draft` (`true` or `false`)
+3. Write the article body in standard Markdown below the front matter.
+4. Run `pnpm build` and confirm the post appears at `/blog`.
+
+Draft behaviour:
+- `draft: true` posts are hidden in production builds.
+- Draft posts still appear during local development.
+
+RSS feed:
+- Generated at build time to `public/blog/feed.xml`.
+- Published URL: `/blog/feed.xml`.
+- Override site URL by setting `SITE_URL` during build (default: `https://liminalhq.ca`).
