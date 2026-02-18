@@ -16,8 +16,8 @@ export default async function BlogIndexPage() {
     <div className="container-custom">
       <Header />
 
-      <main className="section space-y-10">
-        <header className="relative overflow-hidden py-14 text-center md:py-20">
+      <main className="space-y-10 pb-24 pt-4 md:pt-6">
+        <header className="relative py-8 text-center md:py-12">
           <div className="pointer-events-none absolute left-1/4 top-0 -z-10 h-[500px] w-[500px] rounded-full bg-indigo-900/20 blur-[120px]"></div>
           <div className="pointer-events-none absolute bottom-0 right-1/4 -z-10 h-[500px] w-[500px] rounded-full bg-orange-900/10 blur-[120px]"></div>
 

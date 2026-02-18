@@ -3,8 +3,9 @@ export interface ProjectCard {
   accentColour: string;
   title: string;
   description: string;
-  href: string;
-  cta?: string;
+  repositoryUrl: string;
+  siteUrl?: string;
+  primaryCta?: string;
 }
 
 export const selectedWork: ProjectCard[] = [
@@ -13,8 +14,9 @@ export const selectedWork: ProjectCard[] = [
     accentColour: "var(--accent-orange)",
     title: "Threshold",
     description: "About, not at: Threshold uses flexible time windows so alarms fit your life, not the other way around.",
-    href: "https://github.com/liminal-hq/threshold",
-    cta: "View Project →",
+    repositoryUrl: "https://github.com/liminal-hq/threshold",
+    siteUrl: "https://threshold.liminalhq.ca/",
+    primaryCta: "Visit Site →",
   },
   {
     label: "Knowledge Base",
@@ -22,8 +24,9 @@ export const selectedWork: ProjectCard[] = [
     title: "Liminal Notes",
     description:
       "Local-first, Markdown-based note-taking that treats your data as the source of truth. Built with Tauri, React, and Rust.",
-    href: "https://github.com/ScottMorris/liminal-notes",
-    cta: "View Project",
+    repositoryUrl: "https://github.com/ScottMorris/liminal-notes",
+    siteUrl: "https://notes.liminalhq.ca/",
+    primaryCta: "Visit Site",
   },
   {
     label: "Simulation",
@@ -31,8 +34,9 @@ export const selectedWork: ProjectCard[] = [
     title: "City Sim 1000",
     description:
       "Offline-ready city builder in TypeScript/Vite with PixiJS. Lay roads, power a skyline, and manage budget and demand.",
-    href: "https://github.com/ScottMorris/city-sim-1000",
-    cta: "View Project",
+    repositoryUrl: "https://github.com/ScottMorris/city-sim-1000",
+    siteUrl: "https://scottmorris.github.io/city-sim-1000/",
+    primaryCta: "Play Now",
   },
 ];
 
@@ -43,7 +47,8 @@ export const experiments: ProjectCard[] = [
     title: "SMDU",
     description:
       "A modern, terminal-based disk usage analyser inspired by ncdu, built with TypeScript and Ink.",
-    href: "https://github.com/ScottMorris/smdu",
+    repositoryUrl: "https://github.com/ScottMorris/smdu",
+    siteUrl: "https://smdu.liminalhq.ca/",
   },
   {
     label: "Knowledge Tooling",
@@ -51,7 +56,7 @@ export const experiments: ProjectCard[] = [
     title: "Coherence Chat Exporter",
     description:
       "A CLI for archiving AI conversations into organised, tagged Markdown across providers.",
-    href: "https://github.com/liminal-hq/coherence-chat-exporter",
+    repositoryUrl: "https://github.com/liminal-hq/coherence-chat-exporter",
   },
   {
     label: "PWA Utility",
@@ -59,7 +64,7 @@ export const experiments: ProjectCard[] = [
     title: "Keep Note Converter",
     description:
       "Installable Next.js PWA that converts pasted rich text into Google Keep-compatible markup.",
-    href: "https://github.com/ScottMorris/keep-note-converter",
+    repositoryUrl: "https://github.com/ScottMorris/keep-note-converter",
   },
 ];
 
@@ -92,4 +97,8 @@ export function getProjectCardCssVariables(accentColour: string): {
   return {
     "--project-accent": getProjectAccentStyles(accentColour).outline.borderColor,
   };
+}
+
+export function getPrimaryProjectUrl(project: ProjectCard): string {
+  return project.siteUrl ?? project.repositoryUrl;
 }
