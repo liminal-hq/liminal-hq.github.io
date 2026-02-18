@@ -14,7 +14,7 @@ export default function WorkSection() {
   const flagshipPrimaryUrl = getPrimaryProjectUrl(flagship);
 
   return (
-    <section id="work" className="py-28">
+    <section id="work" className="py-24">
       <h2 className="mb-8 text-[2rem] font-semibold text-white">Selected Work</h2>
 
       <article className={`${styles.projectCard} group relative cursor-pointer`}>
@@ -34,7 +34,7 @@ export default function WorkSection() {
             {flagship.label}
           </span>
           <h3 className="mb-4 text-[2.5rem] text-white">{flagship.title}</h3>
-          <p className="mb-10 max-w-[650px] text-[1.15rem] text-[#9ca3af]">{flagship.description}</p>
+          <p className="mb-10 max-w-[650px] text-[1.15rem] text-[var(--text-muted)]">{flagship.description}</p>
 
           <div className="flex flex-wrap items-center gap-5">
             <span className="inline-flex items-center gap-[10px] rounded-[30px] bg-[rgba(255,255,255,0.1)] px-6 py-3 font-semibold text-white transition-all duration-300 group-hover:translate-x-[5px] group-hover:bg-[var(--accent-orange)] group-hover:text-black">
@@ -81,7 +81,7 @@ export default function WorkSection() {
                   {project.label}
                 </span>
                 <h3 className="mb-4 mt-2 text-[2rem] text-white">{project.title}</h3>
-                <p className="mb-6 text-[#9ca3af]">{project.description}</p>
+                <p className="mb-6 text-[var(--text-muted)]">{project.description}</p>
 
                 <div className="flex items-center gap-4">
                   <span className="border-b pb-[2px] text-[0.9rem] text-white" style={{ borderColor: project.accentColour }}>
@@ -90,7 +90,7 @@ export default function WorkSection() {
                   {project.siteUrl ? (
                     <a
                       href={project.repositoryUrl}
-                      className="relative z-20 border-b border-[rgba(255,255,255,0.35)] pb-[2px] text-[0.9rem] text-[#d1d5db]"
+                      className="relative z-20 border-b border-[rgba(255,255,255,0.45)] pb-[2px] text-[0.9rem] text-[#e2e8f0]"
                       target="_blank"
                       rel="noreferrer"
                     >
@@ -132,7 +132,7 @@ export default function WorkSection() {
                   {project.label}
                 </span>
                 <h4 className="mb-4 mt-2 text-[2rem] text-white">{project.title}</h4>
-                <p className="mb-6 text-[#9ca3af]">{project.description}</p>
+                <p className="mb-6 text-[var(--text-muted)]">{project.description}</p>
                 <div className="flex items-center gap-4">
                   <span className="border-b pb-[2px] text-[0.9rem] text-white" style={{ borderColor: project.accentColour }}>
                     {project.siteUrl ? "Visit Site" : "View Source"}
@@ -140,7 +140,7 @@ export default function WorkSection() {
                   {project.siteUrl ? (
                     <a
                       href={project.repositoryUrl}
-                      className="relative z-20 border-b border-[rgba(255,255,255,0.35)] pb-[2px] text-[0.9rem] text-[#d1d5db]"
+                      className="relative z-20 border-b border-[rgba(255,255,255,0.45)] pb-[2px] text-[0.9rem] text-[#e2e8f0]"
                       target="_blank"
                       rel="noreferrer"
                     >

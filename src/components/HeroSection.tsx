@@ -12,7 +12,7 @@ export default function HeroSection() {
             Digital tools for the<br />
             spaces in between.
           </h1>
-          <p className="text-lg max-w-[90%] text-[#9ca3af] mb-8 font-light">
+          <p className="text-lg max-w-[90%] text-[var(--text-muted)] mb-8 font-light">
             We are <strong>Liminal HQ</strong>, an independent software studio building local-first applications.
             We prioritize user agency, privacy, and calm computing.
           </p>

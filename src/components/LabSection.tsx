@@ -14,9 +14,9 @@ export default async function LabSection() {
   const latestPosts = posts.slice(0, 3);
 
   return (
-    <section id="lab" className="py-28">
+    <section id="lab" className="py-24">
       <h2 className="mb-3 text-[2rem] font-semibold text-white">From the Blog</h2>
-      <p className="mb-8 max-w-3xl text-[#9ca3af]">
+      <p className="mb-8 max-w-3xl text-[var(--text-muted)]">
         Recent writing on local-first software, tooling, and design decisions from current studio work.
       </p>
       <ul className="list-none">

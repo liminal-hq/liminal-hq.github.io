@@ -35,14 +35,14 @@ export default async function BlogIndexPage() {
                 Digital Frontier.
               </span>
             </h1>
-            <p className="mx-auto max-w-2xl text-lg leading-relaxed text-neutral-400">
+            <p className="mx-auto max-w-2xl text-lg leading-relaxed text-neutral-300">
               Technical deep dives, calm computing philosophy, and updates from our studio.
             </p>
           </div>
         </header>
 
         <section>
-          <h2 className="mb-8 text-sm font-bold uppercase tracking-widest text-neutral-500">Latest Entries</h2>
+          <h2 className="mb-8 text-sm font-bold uppercase tracking-widest text-neutral-400">Latest Entries</h2>
           <div className="grid gap-6">
             {posts.map((post) => (
               <article
@@ -55,7 +55,7 @@ export default async function BlogIndexPage() {
                   {post.tags.map((tag) => (
                     <li
                       key={`${post.slug}-${tag}`}
-                      className="rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-2 text-xs font-medium text-neutral-400 transition-colors group-hover:border-neutral-700"
+                      className="rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-2 text-xs font-medium text-neutral-300 transition-colors group-hover:border-neutral-700"
                     >
                       {tag}
                     </li>
@@ -74,11 +74,11 @@ export default async function BlogIndexPage() {
                   </Link>
                 </h3>
 
-                <p className="mt-6 max-w-4xl text-lg leading-relaxed text-neutral-400">{post.excerpt}</p>
+                <p className="mt-6 max-w-4xl text-lg leading-relaxed text-neutral-300">{post.excerpt}</p>
 
                 <div className="my-8 h-px bg-neutral-900"></div>
 
-                <div className="flex flex-wrap items-center justify-between gap-4 text-[1.05rem] text-neutral-500">
+                <div className="flex flex-wrap items-center justify-between gap-4 text-[1.05rem] text-neutral-400">
                   <div className="flex items-center gap-4">
                     <time dateTime={post.date}>{formatPostDate(post.date)}</time>
                     <span aria-hidden="true">•</span>
