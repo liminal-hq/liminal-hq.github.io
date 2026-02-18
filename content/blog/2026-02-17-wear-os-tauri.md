@@ -253,10 +253,12 @@ private fun handleOfflineSyncRequest() {
 }
 ```
 
-**Tier 3 — Offline writes:** When the watch sends a save or delete command and the plugin isn't loaded, a foreground service boots the Tauri runtime headlessly, waits for the plugin to initialize (~1 second), then replays the message through the normal path:
+**Tier 3 — Offline writes:** When the watch sends a save or delete command and the plugin isn't loaded, the message is first persisted to `WearSyncQueue`, then a foreground service boots the Tauri runtime headlessly. After the Kotlin `Channel` is registered and the app crate explicitly signals listener readiness, queued messages are drained and forwarded:
 
 ```kotlin
-private fun bootTauriAndReplay(path: String, data: String) {
+private fun bootTauriAndProcessQueue(path: String, data: String) {
+    WearSyncQueue.enqueue(this, path, data)
+
     scope.launch {
         // Launch the main activity silently to boot Tauri
         val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
@@ -265,21 +267,15 @@ private fun bootTauriAndReplay(path: String, data: String) {
         )
         startActivity(launchIntent)
 
-        // Poll for plugin availability
-        var waited = 0L
-        while (WearSyncPlugin.instance == null && waited < 15_000L) {
-            delay(200)
-            waited += 200
-        }
-
-        // Replay through normal path
-        WearSyncPlugin.instance?.onWatchMessage(path, data)
-        stopSelf()
+        // Service waits until:
+        // 1) setWatchMessageHandler registered the Channel
+        // 2) markWatchPipelineReady signalled Rust listeners are bound
+        // Then queued messages are delivered via channel.send(...)
     }
 }
 ```
 
-This pattern — a foreground service that headlessly boots the Tauri runtime — is reusable for any Tauri Android app that needs to process background events. The key insight is that Tauri's runtime initializes quickly (~1 second on modern devices) and the static plugin reference pattern (`companion object { var instance }`) provides a clean way to detect when it's ready.
+This pattern — queue first, then foreground-service boot with an explicit readiness handshake — avoids early-replay races during cold start and is reusable for any Tauri Android app that needs reliable background write handling.
 
 ## The Watch App: Compose for Wear OS
 
@@ -362,7 +358,7 @@ The `pathPrefix` filter ensures only messages intended for this app are delivere
 
 **Debounce before syncing.** Without the 500ms batch collector, toggling a few alarms in quick succession would fire multiple Bluetooth round-trips. The debounce window is invisible to the user but dramatically reduces unnecessary Data Layer traffic.
 
-**Foreground services can boot Tauri headlessly.** When you need to process a background event that requires Rust logic, launching the main activity with `FLAG_ACTIVITY_NO_ANIMATION` and polling for plugin readiness is a reliable pattern. The ~1 second boot time is acceptable for background operations.
+**Foreground services can boot Tauri headlessly.** For background writes that need Rust logic, queue first, then boot in a foreground service and drain only after explicit pipeline readiness. The ~1 second runtime boot plus queue replay remains acceptable for background operations.
 
 ## Conclusion
 
