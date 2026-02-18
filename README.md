@@ -6,9 +6,12 @@ We build software that feels more human without becoming less powerful.
 
 ## Projects
 
+- **[Threshold](https://github.com/liminal-hq/threshold)** – Flexible time window alarms for life-first scheduling.
 - **[Liminal Notes](https://github.com/ScottMorris/liminal-notes)** – Local-first, Markdown-based note-taking.
 - **[City Sim 1000](https://github.com/ScottMorris/city-sim-1000)** – Low-poly city simulation in the browser.
 - **[SMDU](https://github.com/ScottMorris/smdu)** – Terminal disk usage analyser.
+- **[Coherence Chat Exporter](https://github.com/liminal-hq/coherence-chat-exporter)** – CLI for archiving AI conversations into organised, tagged Markdown across providers.
+- **[Keep Note Converter](https://github.com/ScottMorris/keep-note-converter)** – Installable Next.js PWA that converts pasted rich text into Google Keep-compatible markup.
 
 ## Site Architecture
 
@@ -18,6 +21,8 @@ This portfolio is built with modern web standards:
 - **React 19**
 - **Tailwind CSS 4**
 - **TypeScript**
+- **Metadata routes** for `sitemap.xml` and `robots.txt`
+- **RSS feed** generated during build
 
 ## Development
 
@@ -27,6 +32,13 @@ pnpm dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) to view locally.
+
+## Configuration
+
+Environment variables used by the site:
+
+- `NEXT_PUBLIC_SITE_URL` or `SITE_URL` for metadata, sitemap, robots, and RSS URLs (defaults to `https://liminalhq.ca`).
+- `PAGES_BASE_PATH` for GitHub Pages deployments when the site is served from a subpath.
 
 ## Deployment
 
@@ -56,4 +68,10 @@ Draft behaviour:
 RSS feed:
 - Generated at build time to `public/blog/feed.xml`.
 - Published URL: `/blog/feed.xml`.
-- Override site URL by setting `SITE_URL` during build (default: `https://liminalhq.ca`).
+- Override site URL by setting `SITE_URL` or `NEXT_PUBLIC_SITE_URL` during build (default: `https://liminalhq.ca`).
+
+## Testing
+
+```bash
+pnpm test
+```
