@@ -45,28 +45,46 @@ export default async function BlogIndexPage() {
           <h2 className="mb-8 text-sm font-bold uppercase tracking-widest text-neutral-500">Latest Entries</h2>
           <div className="grid gap-6">
             {posts.map((post) => (
-              <article key={post.slug} className="rounded-xl border border-[var(--border-color)] bg-[var(--surface-color)] p-6">
-                <div className="mb-3 flex flex-wrap items-center gap-3 text-sm text-[var(--text-muted)]">
-                  <time dateTime={post.date}>{formatPostDate(post.date)}</time>
-                  <span aria-hidden="true">•</span>
-                  <span>{post.readTimeMinutes} min read</span>
-                </div>
+              <article
+                key={post.slug}
+                className="group relative overflow-hidden rounded-3xl border border-neutral-800 bg-[#0a0a0a] p-6 transition-all duration-300 hover:border-neutral-700 hover:shadow-2xl hover:shadow-orange-900/10 md:p-9"
+              >
+                <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-orange-500 to-pink-600 opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
 
-                <h2 className="text-2xl text-white">
-                  <Link href={`/blog/${post.slug}`} className="transition-colors hover:text-[var(--accent-orange)]">
-                    {post.title}
-                  </Link>
-                </h2>
-
-                <p className="mt-3 text-[var(--text-muted)]">{post.excerpt}</p>
-
-                <ul className="mt-4 flex flex-wrap gap-2">
+                <ul className="mb-6 flex flex-wrap gap-3">
                   {post.tags.map((tag) => (
-                    <li key={`${post.slug}-${tag}`} className="rounded-full border border-[var(--border-color)] px-3 py-1 text-xs text-white">
+                    <li
+                      key={`${post.slug}-${tag}`}
+                      className="rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-2 text-xs font-medium text-neutral-400 transition-colors group-hover:border-neutral-700"
+                    >
                       {tag}
                     </li>
                   ))}
                 </ul>
+
+                <h3 className="text-3xl font-bold md:text-5xl">
+                  <Link
+                    href={`/blog/${post.slug}`}
+                    className="bg-gradient-to-r from-white to-white bg-clip-text text-transparent transition-[background-image] duration-300 group-hover:to-neutral-400"
+                  >
+                    {post.title}
+                  </Link>
+                </h3>
+
+                <p className="mt-6 max-w-4xl text-lg leading-relaxed text-neutral-400">{post.excerpt}</p>
+
+                <div className="my-8 h-px bg-neutral-900"></div>
+
+                <div className="flex flex-wrap items-center justify-between gap-4 text-[1.05rem] text-neutral-500">
+                  <div className="flex items-center gap-4">
+                    <time dateTime={post.date}>{formatPostDate(post.date)}</time>
+                    <span aria-hidden="true">•</span>
+                    <span>{post.readTimeMinutes} min read</span>
+                  </div>
+                  <Link href={`/blog/${post.slug}`} className="font-semibold text-neutral-100 transition-colors group-hover:text-white">
+                    Read Article &nbsp;›
+                  </Link>
+                </div>
               </article>
             ))}
           </div>
