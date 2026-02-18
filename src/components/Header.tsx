@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 const navItems = [
   { label: "Work", href: "/#work" },
@@ -14,7 +15,7 @@ export default function Header() {
         href="/"
         className="flex items-center gap-3 text-xl font-bold tracking-[0.08em] text-white [font-feature-settings:smcp] [font-variant:small-caps]"
       >
-        <div className="h-7 w-7 rounded-lg bg-[linear-gradient(135deg,#ffaa40,#f43f5e,#a78bfa)] shadow-[0_0_15px_rgba(244,63,94,0.3)]"></div>
+        <Image src="/liminalhq-mark-v1.svg" alt="Liminal HQ" width={28} height={28} className="h-7 w-7" />
         liminal hq
       </Link>
       <nav>
