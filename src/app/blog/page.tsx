@@ -36,7 +36,7 @@ export default async function BlogIndexPage() {
               </span>
             </h1>
             <p className="mx-auto max-w-2xl text-lg leading-relaxed text-neutral-400">
-              Technical deep dives, calm computing philosophy, and updates from our studio in Kitchener.
+              Technical deep dives, calm computing philosophy, and updates from our studio.
             </p>
           </div>
         </header>
@@ -62,12 +62,15 @@ export default async function BlogIndexPage() {
                   ))}
                 </ul>
 
-                <h3 className="text-3xl font-bold md:text-5xl">
-                  <Link
-                    href={`/blog/${post.slug}`}
-                    className="bg-gradient-to-r from-white to-white bg-clip-text text-transparent transition-[background-image] duration-300 group-hover:to-neutral-400"
-                  >
-                    {post.title}
+                <h3 className="text-3xl font-bold leading-tight md:text-5xl">
+                  <Link href={`/blog/${post.slug}`} className="relative inline-block">
+                    <span className="transition-opacity duration-300 group-hover:opacity-0">{post.title}</span>
+                    <span
+                      aria-hidden="true"
+                      className="absolute inset-0 bg-gradient-to-r from-[#ffb27a] to-[#ff6ea8] bg-clip-text text-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                    >
+                      {post.title}
+                    </span>
                   </Link>
                 </h3>
 
