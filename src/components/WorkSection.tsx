@@ -14,8 +14,8 @@ export default function WorkSection() {
   const flagshipPrimaryUrl = getPrimaryProjectUrl(flagship);
 
   return (
-    <section id="work" className="py-24">
-      <h2 className="mb-8 text-[2rem] font-semibold text-white">Selected Work</h2>
+    <section id="work" className="py-16 md:py-20">
+      <h2 className="mb-8 text-[1.75rem] font-semibold text-white md:text-[2rem]">Selected Work</h2>
 
       <article className={`${styles.projectCard} group relative cursor-pointer`}>
         <a
@@ -33,8 +33,10 @@ export default function WorkSection() {
           >
             {flagship.label}
           </span>
-          <h3 className="mb-4 text-[2.5rem] text-white">{flagship.title}</h3>
-          <p className="mb-10 max-w-[650px] text-[1.15rem] text-[var(--text-muted)]">{flagship.description}</p>
+          <h3 className="mb-4 text-[2rem] text-white md:text-[2.5rem]">{flagship.title}</h3>
+          <p className="mb-10 max-w-[650px] text-base text-[var(--text-muted)] md:text-[1.15rem]">
+            {flagship.description}
+          </p>
 
           <div className="flex flex-wrap items-center gap-5">
             <span className="inline-flex items-center gap-[10px] rounded-[30px] bg-[rgba(255,255,255,0.1)] px-6 py-3 font-semibold text-white transition-all duration-300 group-hover:translate-x-[5px] group-hover:bg-[var(--accent-orange)] group-hover:text-black">
@@ -54,7 +56,7 @@ export default function WorkSection() {
         </div>
       </article>
 
-      <div className="mb-12 grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-8">
+      <div className="mb-12 grid grid-cols-1 gap-6 md:grid-cols-[repeat(auto-fit,minmax(280px,1fr))] md:gap-8">
         {supportingSelectedWork.map((project) => {
           const accent = getProjectAccentStyles(project.accentColour);
           const primaryUrl = getPrimaryProjectUrl(project);
@@ -80,8 +82,8 @@ export default function WorkSection() {
                 >
                   {project.label}
                 </span>
-                <h3 className="mb-4 mt-2 text-[2rem] text-white">{project.title}</h3>
-                <p className="mb-6 text-[var(--text-muted)]">{project.description}</p>
+                <h3 className="mb-4 mt-2 text-[1.6rem] text-white md:text-[2rem]">{project.title}</h3>
+                <p className="mb-6 text-sm text-[var(--text-muted)] md:text-base">{project.description}</p>
 
                 <div className="flex items-center gap-4">
                   <span className="border-b pb-[2px] text-[0.9rem] text-white" style={{ borderColor: project.accentColour }}>
@@ -104,8 +106,8 @@ export default function WorkSection() {
         })}
       </div>
 
-      <h3 className="mb-6 text-[1.35rem] font-semibold text-white">Experiments &amp; Tools</h3>
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-8">
+      <h3 className="mb-6 text-[1.15rem] font-semibold text-white md:text-[1.35rem]">Experiments &amp; Tools</h3>
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-[repeat(auto-fit,minmax(280px,1fr))] md:gap-8">
         {experiments.map((project) => {
           const accent = getProjectAccentStyles(project.accentColour);
           const primaryUrl = getPrimaryProjectUrl(project);
@@ -131,8 +133,8 @@ export default function WorkSection() {
                 >
                   {project.label}
                 </span>
-                <h4 className="mb-4 mt-2 text-[2rem] text-white">{project.title}</h4>
-                <p className="mb-6 text-[var(--text-muted)]">{project.description}</p>
+                <h4 className="mb-4 mt-2 text-[1.6rem] text-white md:text-[2rem]">{project.title}</h4>
+                <p className="mb-6 text-sm text-[var(--text-muted)] md:text-base">{project.description}</p>
                 <div className="flex items-center gap-4">
                   <span className="border-b pb-[2px] text-[0.9rem] text-white" style={{ borderColor: project.accentColour }}>
                     {project.siteUrl ? "Visit Site" : "View Source"}
