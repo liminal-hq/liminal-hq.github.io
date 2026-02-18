@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+html {
+  scroll-behavior: smooth;
+}
+
 :root {
   --bg-color: #050507;
   --text-color: #e0e0e0;
@@ -308,6 +312,10 @@ h3 {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
   .back-to-top,
   .back-to-top__arrow {
     animation: none;

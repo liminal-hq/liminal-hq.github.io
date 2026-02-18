@@ -33,7 +33,7 @@ export default function Header() {
           ))}
           <li>
             <Link
-              href="mailto:hello@liminalhq.ca"
+              href="mailto:contact@liminalhq.ca"
               className="relative text-[0.95rem] font-medium text-[#9ca3af] transition-all duration-200 hover:text-white hover:shadow-[0_0_8px_rgba(255,255,255,0.5)]"
             >
               Contact
