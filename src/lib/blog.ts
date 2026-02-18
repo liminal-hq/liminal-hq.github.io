@@ -4,6 +4,7 @@ import matter from "gray-matter";
 import { remark } from "remark";
 import remarkGfm from "remark-gfm";
 import remarkRehype from "remark-rehype";
+import rehypeHighlight from "rehype-highlight";
 import rehypeStringify from "rehype-stringify";
 
 const BLOG_DIRECTORY = path.join(process.cwd(), "content", "blog");
@@ -142,6 +143,7 @@ export async function markdownToHtml(markdown: string): Promise<string> {
   const processed = await remark()
     .use(remarkGfm)
     .use(remarkRehype)
+    .use(rehypeHighlight)
     .use(rehypeStringify)
     .process(markdown);
 

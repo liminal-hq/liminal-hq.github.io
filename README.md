@@ -51,3 +51,8 @@ Blog posts live in `content/blog` as Markdown files with front matter.
 Draft behaviour:
 - `draft: true` posts are hidden in production builds.
 - Draft posts still appear during local development.
+
+RSS feed:
+- Generated at build time to `public/blog/feed.xml`.
+- Published URL: `/blog/feed.xml`.
+- Override site URL by setting `SITE_URL` during build (default: `https://liminalhq.ca`).
