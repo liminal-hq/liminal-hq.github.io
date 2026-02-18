@@ -35,7 +35,7 @@ export default function PhilosophySection() {
             Craftsmanship
           </h3>
           <p className="text-[#9ca3af] text-base leading-[1.7]">
-            We reject "move fast and break things." We build robust, calm tools designed to last for decades.
+            We reject &quot;move fast and break things.&quot; We build robust, calm tools designed to last for decades.
           </p>
         </div>
       </div>

@@ -81,3 +81,74 @@ h3 {
 .section {
   padding: 7rem 0;
 }
+
+.blog-prose {
+  color: var(--text-color);
+  font-size: 1.05rem;
+  line-height: 1.8;
+}
+
+.blog-prose > * + * {
+  margin-top: 1.4rem;
+}
+
+.blog-prose h2,
+.blog-prose h3,
+.blog-prose h4 {
+  margin-top: 2.5rem;
+  color: #fff;
+}
+
+.blog-prose h2 {
+  font-size: 1.9rem;
+}
+
+.blog-prose h3 {
+  font-size: 1.45rem;
+}
+
+.blog-prose a {
+  color: var(--accent-orange);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.blog-prose ul,
+.blog-prose ol {
+  padding-left: 1.2rem;
+}
+
+.blog-prose ul {
+  list-style: disc;
+}
+
+.blog-prose ol {
+  list-style: decimal;
+}
+
+.blog-prose li + li {
+  margin-top: 0.45rem;
+}
+
+.blog-prose code {
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0.1rem 0.4rem;
+  font-size: 0.93rem;
+}
+
+.blog-prose pre {
+  overflow-x: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: rgba(10, 10, 14, 0.9);
+  padding: 1rem;
+}
+
+.blog-prose pre code {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 0.9rem;
+}

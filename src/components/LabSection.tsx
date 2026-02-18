@@ -24,7 +24,7 @@ export default function LabSection() {
             Nov 23
           </span>
           <a href="#" className="text-[1.25rem] font-medium text-[#e0e0e0] hover:text-white">
-            Designing for the "Liminal" state of mind
+            Designing for the &quot;Liminal&quot; state of mind
           </a>
         </li>
       </ul>
