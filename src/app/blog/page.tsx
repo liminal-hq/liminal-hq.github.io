@@ -3,10 +3,29 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { formatPostDate, getAllPostsMeta } from "@/lib/blog";
+import { getSiteUrl } from "@/lib/site";
+
+const siteUrl = getSiteUrl();
+const blogUrl = `${siteUrl}/blog`;
 
 export const metadata: Metadata = {
   title: "Blog | Liminal HQ",
   description: "Technical writing and studio notes from Liminal HQ.",
+  alternates: {
+    canonical: "/blog",
+  },
+  openGraph: {
+    title: "Blog | Liminal HQ",
+    description: "Technical writing and studio notes from Liminal HQ.",
+    url: blogUrl,
+    siteName: "Liminal HQ",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Blog | Liminal HQ",
+    description: "Technical writing and studio notes from Liminal HQ.",
+  },
 };
 
 export default async function BlogIndexPage() {

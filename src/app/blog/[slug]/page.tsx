@@ -9,6 +9,9 @@ import {
   getPostBySlug,
   markdownToHtml,
 } from "@/lib/blog";
+import { getSiteUrl } from "@/lib/site";
+
+const siteUrl = getSiteUrl();
 
 interface BlogPostPageProps {
   params: Promise<{ slug: string }>;
@@ -32,6 +35,23 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
   return {
     title: `${post.title} | Liminal HQ`,
     description: post.excerpt,
+    alternates: {
+      canonical: `/blog/${post.slug}`,
+    },
+    openGraph: {
+      title: post.title,
+      description: post.excerpt,
+      url: `${siteUrl}/blog/${post.slug}`,
+      siteName: "Liminal HQ",
+      type: "article",
+      publishedTime: `${post.date}T00:00:00.000Z`,
+      tags: post.tags,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.title,
+      description: post.excerpt,
+    },
   };
 }
 
