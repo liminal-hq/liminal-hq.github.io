@@ -12,7 +12,7 @@ export default function Footer() {
       </div>
 
       <div className="text-right">
-        <p>&copy; 2026 Liminal HQ Inc.</p>
+        <p>&copy; 2026 Liminal HQ</p>
         <p className="mt-2">
           <a href="https://github.com/liminal-hq" className="hover:text-white transition-colors">
             GitHub
