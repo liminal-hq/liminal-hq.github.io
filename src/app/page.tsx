@@ -7,7 +7,7 @@ import Footer from "@/components/Footer";
 
 export default function Home() {
   return (
-    <div className="container-custom">
+    <div id="home" className="container-custom">
       <Header />
 
       <main>

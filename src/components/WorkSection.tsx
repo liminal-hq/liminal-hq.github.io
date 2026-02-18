@@ -20,7 +20,7 @@ export default function WorkSection() {
       <article className={`${styles.projectCard} group relative cursor-pointer`}>
         <a
           href={flagshipPrimaryUrl}
-          className="absolute inset-0 z-10 rounded-[20px]"
+          className="absolute inset-0 z-10 rounded-[20px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-orange)] focus-visible:outline-offset-[-3px]"
           aria-label={`Open ${flagship.title}`}
           target="_blank"
           rel="noreferrer"
@@ -67,7 +67,7 @@ export default function WorkSection() {
             >
               <a
                 href={primaryUrl}
-                className="absolute inset-0 z-10 rounded-2xl"
+                className="absolute inset-0 z-10 rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--project-accent)] focus-visible:outline-offset-[-3px]"
                 aria-label={`Open ${project.title}`}
                 target="_blank"
                 rel="noreferrer"
@@ -118,7 +118,7 @@ export default function WorkSection() {
             >
               <a
                 href={primaryUrl}
-                className="absolute inset-0 z-10 rounded-2xl"
+                className="absolute inset-0 z-10 rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--project-accent)] focus-visible:outline-offset-[-3px]"
                 aria-label={`Open ${project.title}`}
                 target="_blank"
                 rel="noreferrer"
