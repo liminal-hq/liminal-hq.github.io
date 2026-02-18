@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
+import BackToTopButton from "@/components/BackToTopButton";
 import "./globals.css";
 
 const inter = Inter({
@@ -29,6 +30,7 @@ export default function RootLayout({
       <body className={`${inter.variable} ${spaceGrotesk.variable} antialiased`}>
         <div className="ambient-light"></div>
         {children}
+        <BackToTopButton />
       </body>
     </html>
   );
