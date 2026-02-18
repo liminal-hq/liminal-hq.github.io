@@ -2,6 +2,7 @@
 
 **Digital tools for the spaces in between.**
 An independent studio building local-first applications.
+We build software that feels more human without becoming less powerful.
 
 ## Projects
 
