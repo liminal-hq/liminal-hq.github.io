@@ -4,6 +4,7 @@ date: "2026-02-17"
 slug: "wear-os-tauri"
 excerpt: "Tauri v2 brought first-class Android support to the Rust-based app framework. This post walks through adding Wear OS support to Threshold by building a standalone companion app."
 tags:
+  - "Threshold"
   - "Rust"
   - "Tauri"
   - "Android"
