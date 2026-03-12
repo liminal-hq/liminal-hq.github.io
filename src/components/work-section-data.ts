@@ -19,6 +19,15 @@ export const selectedWork: ProjectCard[] = [
     primaryCta: "Visit Site →",
   },
   {
+    label: "Working Memory",
+    accentColour: "var(--accent-blue)",
+    title: "Flow",
+    description:
+      "Local-first, terminal-native working memory for the shell. Track active threads, branch tangents, and keep context close while you work.",
+    repositoryUrl: "https://github.com/liminal-hq/flow",
+    primaryCta: "GitHub",
+  },
+  {
     label: "Knowledge Base",
     accentColour: "var(--accent-purple)",
     title: "Liminal Notes",
