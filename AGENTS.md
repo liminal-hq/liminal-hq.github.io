@@ -92,10 +92,12 @@ This is a personal website/portfolio built with Next.js and deployed to GitHub P
 
 Run these commands from the project root:
 
+- **Use Repo Node.js Version**: `nvm use` (Reads `.nvmrc`, currently `22.21.1`)
 - **Install Dependencies**: `pnpm install`
 - **Start Dev Server**: `pnpm dev` (Runs on `localhost:3000`)
 - **Build for Production**: `pnpm build` (Outputs information to `.next`, static export to `out`)
 - **Lint Code**: `pnpm lint`
+- **Run Tests**: `pnpm test`
 
 ## Project Structure
 
@@ -120,7 +122,8 @@ The project is deployed to **GitHub Pages** via GitHub Actions.
 
 - **Workflow**: `.github/workflows/deploy.yml`
 - **Trigger**: Push to `main` branch.
-- **Process**: Installs dependencies, builds the project, and uploads the `./out` directory as a GitHub Pages artifact.
+- **Node.js Version**: Read from `.nvmrc` by `actions/setup-node`.
+- **Process**: Installs dependencies with `pnpm`, builds the project, and uploads the `./out` directory as a GitHub Pages artifact.
 
 ## Licence and Copyright
 
