@@ -8,6 +8,7 @@ We build software that feels more human without becoming less powerful.
 
 - **[Threshold](https://github.com/liminal-hq/threshold)** – Flexible time window alarms for life-first scheduling.
 - **[Liminal Notes](https://github.com/ScottMorris/liminal-notes)** – Local-first, Markdown-based note-taking.
+- **[Flow](https://github.com/liminal-hq/flow)** – Calm, local-first focus sessions for intentional deep work.
 - **[City Sim 1000](https://github.com/ScottMorris/city-sim-1000)** – Low-poly city simulation in the browser.
 - **[SMDU](https://github.com/ScottMorris/smdu)** – Terminal disk usage analyser.
 - **[Coherence Chat Exporter](https://github.com/liminal-hq/coherence-chat-exporter)** – CLI for archiving AI conversations into organised, tagged Markdown across providers.
@@ -34,7 +35,7 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000) to view locally.
 
-The repo includes a `.nvmrc` file so local development and GitHub Actions use the same Node.js version.
+The repo includes a `.nvmrc` file so local development and GitHub Actions use the same Node.js version (`22.21.1`).
 
 ## Configuration
 
@@ -46,7 +47,7 @@ Environment variables used by the site:
 ## Deployment
 
 Automated via **GitHub Actions** to GitHub Pages. Pushing to `main` builds and deploys the `out/` directory.
-The deploy workflow reads the Node.js version from `.nvmrc`.
+The deploy workflow reads the Node.js version from `.nvmrc`, installs dependencies with `pnpm`, and builds the static export from `out/`.
 
 ## Blog
 
@@ -77,5 +78,6 @@ RSS feed:
 ## Testing
 
 ```bash
+pnpm lint
 pnpm test
 ```
