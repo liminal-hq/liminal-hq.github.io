@@ -27,11 +27,14 @@ This portfolio is built with modern web standards:
 ## Development
 
 ```bash
+nvm use
 pnpm install
 pnpm dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) to view locally.
+
+The repo includes a `.nvmrc` file so local development and GitHub Actions use the same Node.js version.
 
 ## Configuration
 
@@ -43,6 +46,7 @@ Environment variables used by the site:
 ## Deployment
 
 Automated via **GitHub Actions** to GitHub Pages. Pushing to `main` builds and deploys the `out/` directory.
+The deploy workflow reads the Node.js version from `.nvmrc`.
 
 ## Blog
 
