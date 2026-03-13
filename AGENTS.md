@@ -65,8 +65,8 @@ This is a personal website/portfolio built with Next.js and deployed to GitHub P
 
 **Requirement:** Every PR must include labels that describe the change and map to release-note categories.
 
-- Add at least one category label to every PR: `feat`, `feature`, `enhancement`, `fix`, `bug`, `bugfix`, `docs`, `test`, `ci`, `build`, or `chore`.
-- Add additional scope labels where helpful (for example, `site`, `blog`, `ui`, `seo`).
+- Add at least one category label to every PR from the labels currently available in this repo: `bug`, `enhancement`, `chore`, `documentation`, or `infrastructure`.
+- Add additional scope labels where helpful. Current repo scope labels include `accessibility`, `ui/ux`, `blog`, `content`, and `seo`.
 - Use `skip-changelog` only when a change should be excluded from generated release notes.
 - Keep labels accurate as scope changes during review.
 
