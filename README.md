@@ -10,6 +10,7 @@ We build software that feels more human without becoming less powerful.
 - **[Liminal Notes](https://github.com/ScottMorris/liminal-notes)** – Local-first, Markdown-based note-taking.
 - **[Flow](https://github.com/liminal-hq/flow)** – Calm, local-first focus sessions for intentional deep work.
 - **[City Sim 1000](https://github.com/ScottMorris/city-sim-1000)** – Low-poly city simulation in the browser.
+- **[Emoji Nook](https://github.com/liminal-hq/emoji-nook)** – Native Linux emoji picker for GNOME, KDE, and other desktop environments.
 - **[SMDU](https://github.com/ScottMorris/smdu)** – Terminal disk usage analyser.
 - **[Coherence Chat Exporter](https://github.com/liminal-hq/coherence-chat-exporter)** – CLI for archiving AI conversations into organised, tagged Markdown across providers.
 - **[Keep Note Converter](https://github.com/ScottMorris/keep-note-converter)** – Installable Next.js PWA that converts pasted rich text into Google Keep-compatible markup.

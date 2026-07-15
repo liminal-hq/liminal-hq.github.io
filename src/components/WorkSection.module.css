@@ -15,7 +15,8 @@
 
 .projectCard:hover {
   border-color: transparent;
-  box-shadow: 0 0 0 1px rgba(255, 170, 64, 0.5), 0 20px 50px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--project-accent, var(--accent-orange)) 50%, transparent),
+    0 20px 50px rgba(0, 0, 0, 0.4);
 }
 
 .projectCard::before {
@@ -27,7 +28,7 @@
   height: 400px;
   background: radial-gradient(
     circle,
-    rgba(255, 170, 64, 0.15) 0%,
+    color-mix(in srgb, var(--project-accent, var(--accent-orange)) 15%, transparent) 0%,
     transparent 70%
   );
   opacity: 0.5;

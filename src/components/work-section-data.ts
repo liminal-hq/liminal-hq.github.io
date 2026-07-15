@@ -60,6 +60,14 @@ export const experiments: ProjectCard[] = [
     siteUrl: "https://smdu.liminalhq.ca/",
   },
   {
+    label: "Linux Utility",
+    accentColour: "var(--accent-blue)",
+    title: "Emoji Nook",
+    description:
+      "Native Linux emoji picker built with Tauri and React. Launch it from a shortcut, search fast, and drop emoji into the app you were already using.",
+    repositoryUrl: "https://github.com/liminal-hq/emoji-nook",
+  },
+  {
     label: "Knowledge Tooling",
     accentColour: "var(--accent-orange)",
     title: "Coherence Chat Exporter",
