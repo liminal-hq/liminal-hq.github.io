@@ -17,7 +17,7 @@ This is a personal website/portfolio built with Next.js and deployed to GitHub P
 
 ## Markdown Formatting
 
-**REQUIREMENT:** Do not hard-wrap markdown prose. Write each paragraph or bullet as a single unwrapped line in the source, no matter how long — let the renderer (GitHub, a browser, an editor's soft-wrap) reflow it for display. This applies everywhere: commit bodies, PR descriptions and comments, GitHub issue bodies and comments, docs under `content/`, README files, and code comments written in Markdown.
+**REQUIREMENT:** Do not hard-wrap markdown prose. Write each paragraph or bullet as a single unwrapped line in the source, no matter how long — let the renderer (GitHub, a browser, an editor's soft-wrap) reflow it for display. This applies to markdown files (docs under `content/`, README files), PR and issue descriptions, and PR and issue comments. Commit message bodies are exempt — wrapping those is fine.
 
 - Manual line breaks mid-paragraph don't survive Markdown rendering as intended (they either collapse into the same line anyway or break formatting), and they create noisy diffs when a later edit only changes one word but reflows the whole wrapped block.
 - This does not apply to genuinely separate list items, headings, or intentional line breaks (e.g. two-space trailing breaks, blank lines between paragraphs) — only to breaking up one continuous sentence/paragraph across multiple lines.
