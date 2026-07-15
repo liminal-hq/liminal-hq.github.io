@@ -15,6 +15,13 @@ This is a personal website/portfolio built with Next.js and deployed to GitHub P
 - **Content Changes:** Keep user-facing copy aligned with the site voice: calm, clear, concise, and product-focused.
 - **Minimalism:** Avoid adding new dependencies, abstractions, or complexity unless they clearly improve maintainability or user experience.
 
+## Markdown Formatting
+
+**REQUIREMENT:** Do not hard-wrap markdown prose. Write each paragraph or bullet as a single unwrapped line in the source, no matter how long — let the renderer (GitHub, a browser, an editor's soft-wrap) reflow it for display. This applies everywhere: commit bodies, PR descriptions and comments, GitHub issue bodies and comments, docs under `content/`, README files, and code comments written in Markdown.
+
+- Manual line breaks mid-paragraph don't survive Markdown rendering as intended (they either collapse into the same line anyway or break formatting), and they create noisy diffs when a later edit only changes one word but reflows the whole wrapped block.
+- This does not apply to genuinely separate list items, headings, or intentional line breaks (e.g. two-space trailing breaks, blank lines between paragraphs) — only to breaking up one continuous sentence/paragraph across multiple lines.
+
 ## Commit Messages
 
 **Format:** Use Conventional Commits format (e.g., `feat: ...`, `fix: ...`, `docs: ...`, `test: ...`).
@@ -60,6 +67,7 @@ This is a personal website/portfolio built with Next.js and deployed to GitHub P
 - Keep internal triage mechanics in local runbooks, internal labels, and agent workflows only.
 - Use user-facing, outcome-focused language in PR titles and descriptions.
 - Only include internal process details in PR content when explicitly requested by the user.
+- Open pull requests ready for review by default. Only create a draft PR when the user explicitly asks for a draft or when there is a clearly communicated blocker that makes draft status necessary.
 
 ## Pull Request Labels
 
@@ -69,6 +77,10 @@ This is a personal website/portfolio built with Next.js and deployed to GitHub P
 - Add additional scope labels where helpful. Current repo scope labels include `accessibility`, `ui/ux`, `blog`, `content`, and `seo`.
 - Use `skip-changelog` only when a change should be excluded from generated release notes.
 - Keep labels accurate as scope changes during review.
+
+## Git Workflow
+
+**Requirement:** Do not push changes (especially force pushes) to the repository unless explicitly requested by the user.
 
 ## Documentation
 
