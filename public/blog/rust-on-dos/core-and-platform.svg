@@ -72,7 +72,7 @@
   <text class="t" x="524" y="130">li-retro</text>
   <text class="s" x="524" y="150">format, condition and flow VMs,</text>
   <text class="s" x="524" y="168">text renderer, install engine</text>
-  <text class="s" x="524" y="190">no_std + alloc, 3,668 lines</text>
+  <text class="s" x="524" y="190">no_std + alloc, host-tested</text>
   <rect class="seam" x="512" y="262" width="224" height="60" rx="8"/>
   <text class="t" x="524" y="284">trait Platform</text>
   <text class="s" x="524" y="304">screen, keys, files, free space</text>
