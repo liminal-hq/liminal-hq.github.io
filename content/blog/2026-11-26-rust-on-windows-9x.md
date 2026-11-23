@@ -185,4 +185,4 @@ The installer's Win32 runtime is in `win32/` of [liminal-hq-labs/liminal-install
 
 So Windows 95 doesn't run every Win32 program. It runs programs written in its dialect: ANSI functions only, subsystem 4.0, and nothing from a C runtime it never shipped, built for a CPU it knew. Rust can write that dialect from a Linux machine with no Windows SDK, as long as checks in the build hold it to the rules.
 
-That's the last of the three platforms. The installer has a DOS runtime that installs under DOSBox, a Windows 95 runtime that so far installs only under Wine, and two halves of a Windows 3.1 one. Quill runs on DOS and Windows 95 from one Rust core, and on Windows 3.1 it has so far reached test programs.
+That's the last of the three platforms. The installer has a DOS runtime that installs under DOSBox, a Windows 95 runtime that so far installs only under Wine, and a Windows 3.1 runtime that is being relinked into one program with Part 2's multi-segment packer. Quill runs on DOS and Windows 95 from one Rust core, and on Windows 3.1 it has so far reached test programs.
