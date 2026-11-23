@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 430" width="760" height="430" role="img" aria-labelledby="t d">
+  <title id="t">How a timer tick breaks a code16 stack access</title>
+  <desc id="d">Four steps in time. An import stub returns from a Windows call and clears the high half of ESP, so ESP is 000044D2. Rust code then reads the stack with mov esi, [esp+0x14], which reaches offset 44E6 inside the 64 KiB stack segment. A timer tick arrives, about 20 times a second under DOSBox-X, and ESP comes back as 800144D2. The next stack read uses all 32 bits, asks for an offset about 2 GiB past the end of the segment, and faults. A long computation between API calls is more likely to meet a tick.</desc>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#ffaa40"/>
+    </marker>
+  </defs>
+  <style>
+    .bg { fill: #0c0c12; }
+    .ok { fill: #0f1a3d; stroke: #60a5fa; stroke-width: 1.2; }
+    .tick { fill: #2a1d0c; stroke: #ffaa40; stroke-width: 1.2; }
+    .bad { fill: #2d0f16; stroke: #f87171; stroke-width: 1.2; }
+    .h { font: 600 15px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #ffffff; }
+    .p { font: 13.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #b4bfce; }
+    .m { font: 13px ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; fill: #22d3ee; }
+    .r { font: 13px ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; fill: #f87171; }
+    .note { font: 13.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #ffaa40; }
+    .line { stroke: #ffaa40; stroke-width: 1.6; fill: none; }
+  </style>
+  <rect class="bg" width="760" height="430" rx="14"/>
+  <text class="h" x="30" y="38">One stack read, before and after a timer tick</text>
+
+  <rect class="ok" x="30" y="64" width="160" height="150" rx="6"/>
+  <text class="h" x="44" y="90">1. Stub returns</text>
+  <text class="p" x="44" y="112">after a Windows call</text>
+  <text class="m" x="44" y="140">movzx esp, sp</text>
+  <text class="p" x="44" y="168">ESP =</text>
+  <text class="m" x="44" y="190">000044D2</text>
+
+  <rect class="ok" x="210" y="64" width="160" height="150" rx="6"/>
+  <text class="h" x="224" y="90">2. Rust runs</text>
+  <text class="m" x="224" y="118">mov esi,</text>
+  <text class="m" x="224" y="136">  [esp+0x14]</text>
+  <text class="p" x="224" y="168">offset 44E6,</text>
+  <text class="p" x="224" y="190">inside 64 KiB: fine</text>
+
+  <rect class="tick" x="390" y="64" width="160" height="150" rx="6"/>
+  <text class="h" x="404" y="90">3. Timer tick</text>
+  <text class="p" x="404" y="112">about 20 a second</text>
+  <text class="p" x="404" y="132">under DOSBox-X</text>
+  <text class="p" x="404" y="168">ESP comes back</text>
+  <text class="r" x="404" y="190">800144D2</text>
+
+  <rect class="bad" x="570" y="64" width="160" height="150" rx="6"/>
+  <text class="h" x="584" y="90">4. Next read</text>
+  <text class="m" x="584" y="118">mov esi,</text>
+  <text class="m" x="584" y="136">  [esp+0x14]</text>
+  <text class="p" x="584" y="168">about 2 GiB past</text>
+  <text class="r" x="584" y="190">the segment: fault</text>
+
+  <path class="line" d="M190 139 H208" marker-end="url(#a)"/>
+  <path class="line" d="M370 139 H388" marker-end="url(#a)"/>
+  <path class="line" d="M550 139 H568" marker-end="url(#a)"/>
+
+  <text class="h" x="30" y="262">Why the length of the work matters</text>
+  <rect class="ok" x="30" y="280" width="90" height="26" rx="4"/>
+  <text class="p" x="42" y="298">API call</text>
+  <rect class="ok" x="128" y="280" width="60" height="26" rx="4"/>
+  <text class="p" x="138" y="298">short</text>
+  <rect class="ok" x="196" y="280" width="90" height="26" rx="4"/>
+  <text class="p" x="208" y="298">API call</text>
+  <rect class="ok" x="294" y="280" width="340" height="26" rx="4"/>
+  <text class="p" x="306" y="298">long: decode the project, inflate a chunk</text>
+  <rect class="tick" x="604" y="276" width="6" height="34"/>
+  <text class="note" x="644" y="298">tick</text>
+  <text class="note" x="30" y="344">Each API call ends in a stub that cleans ESP, so short stretches of Rust rarely meet a tick.</text>
+  <text class="note" x="30" y="368">A stretch of a few milliseconds often does, and the fault lands wherever the next stack read is.</text>
+  <text class="p" x="30" y="404">Measured with a probe on Windows for Workgroups 3.11 in DOSBox-X. Real hardware has not been checked.</text>
+</svg>
