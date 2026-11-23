@@ -2,7 +2,7 @@
 title: "Cross-compiling to the past, part 2: Rust on Windows 3.1"
 date: "2026-11-25"
 slug: "rust-on-windows-3-1"
-excerpt: "Rust can build real 16-bit Windows programs with LLVM's code16 mode, rust-lld and a home-made NE packer. On Windows for Workgroups 3.11 the installer engine still faults in four runs out of ten, and the trail leads to a register that goes bad with the timer."
+excerpt: "Rust can build real 16-bit Windows programs with LLVM's code16 mode, rust-lld and a home-made NE packer. On Windows for Workgroups 3.11 the installer engine faulted in four runs out of ten, and the trail led to a register the CPU only half restores."
 tags:
   - "Cross-compilation"
   - "Rust"
@@ -23,7 +23,7 @@ Four of the last ten runs died. The program was `ENGINE.EXE`, the install engine
 ![A Windows 3.11 dialog titled Software License Agreement, with a scrolling licence, accept and decline buttons, and Back, Next and Cancel](/blog/rust-on-windows-3-1/uidemo-licence.png)
 *The installer's licence page on Windows for Workgroups 3.11 in DOSBox-X: real Windows controls, laid out from the same compiled project the DOS installer reads.*
 
-A crash that moves around is the worst kind to chase, and this one took a series of probe programs to pin down. The trail runs through how a 2026 Rust compiler produces a Windows 3.1 program at all, because the crash lives in exactly that trick. The next four sections are that background; the crash picks up again at "Windows changes registers it promised nothing about".
+A crash that moves around is the worst kind to chase, and this one took a series of probe programs to pin down. The trail runs through how a 2026 Rust compiler produces a Windows 3.1 program at all, because the crash lives in exactly that trick. The next four sections are that background; the investigation picks up again at "Windows changes registers it promised nothing about".
 
 ## Why the installer's Windows 3.1 runtime is Rust at all
 
@@ -73,7 +73,7 @@ Each letter is one argument: `w` a word, `l` a long, `p` a data pointer, `f` a c
 The packer, `ne_pack.py`, then turns the linked ELF file into an NE executable. Part 1's DOS packer had nothing to resolve, because `rust-lld` had fixed every address. On Windows nothing is fixed until load time, so this packer describes every gap: one fixup per import, entry records for window procedures, name tables and resources such as dialogs.
 
 ![Byte layout of MSGBOX.EXE: a DOS stub, the NE header and tables, a 261-byte code segment with four far-call sites, four relocation records pointing back at them, and a 44-byte data segment](/blog/rust-on-windows-3-1/msgbox-ne-layout.svg)
-*The whole of `MSGBOX.EXE`, 620 bytes. The four orange bands are the far calls the loader patches.*
+*The whole of `MSGBOX.EXE` as the spike built it, 620 bytes. The four orange bands are the far calls the loader patches.*
 
 The program behind that layout is all of this:
 
@@ -121,11 +121,13 @@ So every stub now saves EBX, ESI, EDI and EBP at full width, and so does the wra
 
 ## The faults came back when the program grew
 
-The installer's whole Windows 3.1 runtime doesn't fit in one code segment (more on that below), so it was built as two halves that do: `ENGINE.EXE`, which installs and uninstalls from the pack, and `UIDEMO.EXE`, which shows the pages. Both ran. Both also died now and then, in different places.
+The installer's whole Windows 3.1 runtime didn't fit in one code segment (more on that below), so it was built as two halves that did: `ENGINE.EXE`, which installs and uninstalls from the pack, and `UIDEMO.EXE`, which shows the pages. Both ran. Both also died now and then, in different places.
 
 One early suspect was memory. Windows 3.11 doesn't zero the part of a segment past its length in the file, or the unused stack, so the program's entry code now clears both. The project's notes record the failure rate falling from "about 2 in 5" to "about 1 in 6", without the run counts behind them. Then the build grew, and the last 10 runs of `ENGINE.EXE` (5 installs, 5 uninstalls) faulted 4 times, back where it started.
 
-Another suspect was jump tables. In Quill's probe, a four-way `match` compiled to `jmp [ebx*4+0x10]`, and the jump landed in the middle of a `call` instruction, which Windows reported as an illegal instruction. Nobody has explained that one yet. Jump tables are off in both projects (`-C jump-tables=no`, about 1 KB of code), and the faults carried on.
+Another suspect was jump tables. In Quill's probe, a four-way `match` compiled to `jmp [ebx*4+0x10]`, and the jump landed at `0001:11D0`, in the middle of a `call` instruction. Jump tables were switched off in both projects, and the faults carried on.
+
+Only later did anyone notice that `11D0` is also Program Manager's window handle, printed a few lines earlier in the same log. The table hadn't been built wrong. Something had written over it.
 
 ## The clue was ESP going bad about 20 times a second
 
@@ -134,34 +136,39 @@ The faults had one thing in common. The General Protection Faults hit a `rep mov
 So I wrote a probe that does nothing but loop in assembly, touching no stack memory, and checks the high half of ESP on every pass. In 6.3 seconds it found ESP above `0xFFFF` 130 times, always `8001xxxx`, cleaning it each time. That's 20.6 a second. The standard PC timer ticks 18.2 times a second, and I don't know whether the gap comes from the probe, from DOSBox-X, or from a timer that Windows reprograms.
 
 ![A timeline: a stub clears ESP after a Windows call, Rust reads the stack safely, a timer tick leaves 8001 in the high half of ESP, and the next stack read faults past the end of the segment](/blog/rust-on-windows-3-1/esp-timeline.svg)
-*The mechanism that fits what the probes measured. The ESP values follow the probe's pattern.*
+*How a tick breaks a stack read. The ESP values follow the probe's pattern.*
 
-The best fit so far goes like this. code16 addresses the stack through all 32 bits of ESP, so the first stack read after a dirty tick asks for an offset about 2 GiB past the end of a 64 KiB segment, and the hardware stops it.
-
-Each Windows call ends in a stub that cleans ESP, which would explain why short stretches of Rust survive. A stretch of a few milliseconds with no API call, such as decoding the project or inflating a chunk of the pack, is likely to meet a tick, and the bigger build has more of those stretches.
+code16 addresses the stack through all 32 bits of ESP, so the first stack read after a dirty tick asks for an offset about 2 GiB past the end of a 64 KiB segment. Each Windows call ends in a stub that cleans ESP, which is why short stretches of Rust survived, while a few milliseconds of decoding or inflating with no API call in between was likely to meet a tick. A stray write through a bad stack address also fits the overwritten jump table.
 
 > **What didn't fix it.**
 >
-> - Hooking the timer interrupts (INT 08h and INT 1Ch) to clean ESP changed nothing: the counts were 129 and 133. That suggests the dirt is made after the handlers run, somewhere a task can't reach.
+> - Hooking the timer interrupts (INT 08h and INT 1Ch) to clean ESP changed nothing: the counts were 129 and 133. The dirt is made after the handlers run.
 > - A frame pointer copies the dirt into EBP, and locals addressed through EBP fault the same way.
-> - A 32-bit stack (SS made an alias of DS with the "big" bit set through DPMI function `0009h`) took the count to zero and let installs run. Uninstalls then faulted inside Windows' own `KRNL386` in 3 runs out of 3, and the fault moved when the code's layout changed, so the dirt is probably still reaching something.
+> - Making the task's whole stack 32-bit (SS made an alias of DS with the "big" bit set through DPMI) took the count to zero and let installs run. Uninstalls then faulted inside Windows' own `KRNL386` in 3 runs out of 3.
 
-## What the evidence doesn't say yet
+## The root cause is how a 386 returns to a 16-bit stack
 
-The installer's decision log records this as D74, and it ends with "not solved". The 32-bit stack experiment is why the mechanism above is a best fit and not a proof. The options, in the order I plan to try them:
+When an interrupt ends, the CPU returns to whatever stack the program was on. If that stack segment is a 16-bit one, a 386 restores only SP, the low half, and ESP's high half keeps whatever the system code left there. In 386 Enhanced mode, Windows 3.11 leaves `8001` at every timer tick. It's the same CPU behaviour that Linux has had to work around for 16-bit stacks, under the name "espfix".
 
-- Find where the dirt is made with DOSBox-X's debugger, and whether a 32-bit stack plus some care around KERNEL's own stack use closes it.
-- Have the packer rewrite stack accesses to 16-bit `[bp+x]` addressing, which ignores the high half.
-- Keep computations short enough to end in an API call.
-- Fall back to Open Watcom C, whose 16-bit code never touches ESP.
+That also explains the failed experiment. A stack segment marked 32-bit gets all of ESP back, which is why the count dropped to zero. But making the task's own stack 32-bit put Windows' 16-bit KERNEL code on a stack it was never written for, and that's what faulted in `KRNL386`.
 
-I don't know whether a real 386 or 486 running Windows 3.11 does the same thing. Every measurement here comes from DOSBox-X 2025.02.01, and an emulator is allowed to differ from silicon in exactly this sort of corner. Until a real machine runs the probe, "Windows 3.11 dirties ESP" really means "Windows 3.11 in DOSBox-X does".
+## The fix gives Rust a 32-bit stack and leaves Windows on its own
 
-## The other wall is 64 KiB of code
+The fix, in a pull request on the public template (PR #3), keeps the two apart:
 
-The crash isn't the only problem. LLVM's code16 mode emits only near calls (`66 E8` and a 32-bit offset). It can't emit a far call, so every function must sit in the same code segment as everything that calls it, and a segment holds 65,536 bytes (offsets 0 to 65,535).
+- At start-up, `_start` asks DPMI for a second selector over the same stack memory, marked 32-bit, and Rust runs on that alias.
+- Each import stub switches back to the real 16-bit stack right before its far call into Windows, and to the alias right after, so Windows only ever runs on the stack it gave the task.
+- Because Windows can move the data segment when it compacts memory, the runtime moves the alias after each call if the base has changed.
 
-The whole installer runtime, with the flow VM, the install engine and the pages, first came to 121,725 bytes of code. Slimming took it to 97,265, and then the Windows 95 work added shortcuts, an uninstaller and a registry entry to the shared install code, which brought it to 111,211. Each half still fits on its own, `ENGINE.EXE` at 61,684 bytes of code (94% of the segment) and `UIDEMO.EXE` at 61,186, while the joined program doesn't.
+The test program, `BIGSEG.EXE`, has 88 KB of code in five segments and checks every result against a second implementation. It passed 40 runs out of 40 on Windows for Workgroups 3.11 under DOSBox-X, with no wrong results. The same binary with the alias turned off gave wrong results in 3 runs out of 20, about 1 in 7, close to the installer's 1 in 6. So the installer's intermittent fault was the ESP dirt all along, and not the packer or the stubs.
+
+In the template, jump tables are back on, and `BIGSEG.EXE` checks one on Windows 3.11.
+
+## The other wall was 64 KiB of code
+
+The crash wasn't the only problem. LLVM's code16 mode emits only near calls (`66 E8` and a 32-bit offset). It can't emit a far call, so every function had to sit in the same code segment as everything that calls it, and a segment holds 65,536 bytes (offsets 0 to 65,535).
+
+The whole installer runtime, with the flow VM, the install engine and the pages, first came to 121,725 bytes of code. Slimming took it to 97,265, and then the Windows 95 work added shortcuts, an uninstaller and a registry entry to the shared install code, which brought it to 111,211. Each half fit on its own, `ENGINE.EXE` at 61,684 bytes of code (94% of the segment) and `UIDEMO.EXE` at 61,186, while the joined program didn't.
 
 > **One change, three runtimes.** The biggest single cut was decision D72: a hand-written project decoder in place of `serde`'s generated one, a vector in place of a `BTreeMap`, and no sort at run time. The same change shrinks all three of the installer's old-machine runtimes:
 >
@@ -173,30 +180,34 @@ The whole installer runtime, with the flow VM, the install engine and the pages,
 >
 > The "after" builds are on the installer's Windows 3.1 branch, PR #36, not yet merged.
 
-The way out is a packer that splits code across several segments. Quill's copy of the packer already does it for a test program: a call that crosses segments goes through a small veneer in the caller's segment, which keeps a shadow return stack and makes the far jump.
+The same pull request removes that wall. The packer now places functions in several NE code segments itself. A call that crosses segments goes through a small veneer in the caller's segment that makes the far jump, and tail calls and calls through function pointers go through a shadow return stack in the data segment. Every function whose address is taken gets a slot at the same offset in every segment, so a function pointer means the same thing wherever it's called.
 
-Its three-segment test, with nine cross calls, 60 levels of nesting and function pointers called from each segment, printed `RESULT: PASS` on Windows 3.11. The same work is in progress in the public template, and the installer will take it from there and relink the whole `SETUP.EXE`. Until that happens, the joined installer hasn't run on Windows 3.1, and I won't claim it will.
+Segments can also be loaded on first call and thrown away under memory pressure, through a gate that moves to the 16-bit stack while Windows reloads them. In each of the 40 runs, `BIGSEG.EXE` had its third segment discarded and reloaded. The limits are 253 code segments, a 1 MB file, and no function bigger than one segment. Quill built the first version of this idea, and the shared packer took it over so the two projects don't split every fix.
+
+The smallest program paid for the stack code: `MSGBOX.EXE` grew from 620 to 948 bytes.
 
 ## Limits and what hasn't been tested
 
-- No real hardware. Everything ran in DOSBox-X, VirtualBox or Wine.
+- Only DOSBox-X has shown the fix. Since the root cause is how a 386 returns to a 16-bit stack, I expect a real machine to behave the same, but no real hardware and no other emulator has run it.
+- The template's change is still a pull request, and the installer's whole `SETUP.EXE` is being relinked with it. Until that build passes its own runs on Windows 3.11, I won't claim the installer works there.
 - No Standard mode and no 286. Windows for Workgroups 3.11 answers `WIN /S` with "does not run in real or standard modes", and I haven't installed a retail Windows 3.1 to try it.
-- The installer runtime hasn't run on Windows Me yet. The earlier spike did.
+- Windows Me has run the single-segment programs and hasn't run the new stack code yet.
 - No Program Manager group. A Windows 3.1 installer is expected to make one through a DDE conversation with Program Manager, and the seam for it exists without the conversation behind it.
-- The joined `SETUP.EXE`, as above, waits for multi-segment code.
 
 ## Try it
 
-The toolchain is now a public template, [liminal-hq-labs/rust-win16](https://github.com/liminal-hq-labs/rust-win16): the code16 target spec, the NE packer and a separate NE reader that checks it, the import table and stub generator, and three examples (`msgbox`, `hello` and a small `setup`). Its README lists the register and loader pitfalls above. It has been tried on Windows for Workgroups 3.11, Windows Me and Wine.
+The toolchain is a public template, [liminal-hq-labs/rust-win16](https://github.com/liminal-hq-labs/rust-win16): the code16 target spec, the NE packer and a separate NE reader that checks it, the import table and stub generator, and the examples (`msgbox`, `hello`, a small `setup`, and `bigseg` in PR #3). Its README lists the register and loader pitfalls above. It has been tried on Windows for Workgroups 3.11, Windows Me and Wine.
 
-The installer's runtime lives in `retro/win16/` of [liminal-hq-labs/liminal-installer](https://github.com/liminal-hq-labs/liminal-installer), in PR #36 at the time of writing, with the full ESP investigation in `docs/retro-win16.md`. You need `rustup` with `rust-src` and Python 3, and Wine is the quickest way to run the results.
+The installer's runtime lives in `retro/win16/` of [liminal-hq-labs/liminal-installer](https://github.com/liminal-hq-labs/liminal-installer), in PR #36 at the time of writing, with the ESP investigation in `docs/retro-win16.md`. You need `rustup` with `rust-src` and Python 3, and Wine is the quickest way to run the results.
 
 ## Credits
 
-**Wine** supplied every ordinal in the import table and the fast half of the test loop. **Open Watcom** was the reference I measured against, header by header, and remains the fallback. **DOSBox-X** ran Windows for Workgroups 3.11 well enough to catch every bug in this post, and possibly to cause one of them, which is still to be found out.
+**Wine** supplied every ordinal in the import table and the fast half of the test loop. **Open Watcom** was the reference I measured against, header by header, and remains the fallback. **DOSBox-X** ran Windows for Workgroups 3.11 well enough to catch every bug in this post, including the one that took longest.
 
 ## Next
 
-The bet from the start of this post is still open, and four runs in ten still die. Rust on Windows 3.1 installs files and shows real dialogs. Before the installer can rely on it, it needs a packer that splits code across segments, and an answer about ESP.
+The case, in order: an installer that died in four runs out of ten, each time somewhere new. Memory that Windows didn't clear was a real problem, but fixing it didn't stop the faults, and the jump tables that looked broken had been written over. The clue was a probe that watched ESP's high half turn `8001` about 20 times a second.
 
-[Part 3](/blog/rust-on-windows-9x) goes back up to 32 bits for Windows 95, 98 and Me, where Rust's own Windows target is close enough to bend, and a Windows Me virtual machine had a crash of its own to contribute.
+The cause is a 386 restoring only SP on its way back to a 16-bit stack, and the fix runs Rust on a 32-bit alias while Windows keeps its own stack, with 40 clean runs out of 40. What's still unproven is everywhere except DOSBox-X: real hardware, other emulators, Windows Me and Standard mode.
+
+The bet D46 made, Rust for Windows 3.1 with Open Watcom in reserve, holds so far. [Part 3](/blog/rust-on-windows-9x) goes back up to 32 bits for Windows 95, 98 and Me, where Rust's own Windows target is close enough to bend, and a Windows Me virtual machine had a crash of its own to contribute.
