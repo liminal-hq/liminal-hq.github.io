@@ -148,7 +148,7 @@ code16 addresses the stack through all 32 bits of ESP, so the first stack read a
 
 ## The root cause is how a 386 returns to a 16-bit stack
 
-When an interrupt ends, the CPU returns to whatever stack the program was on. If that stack segment is a 16-bit one, a 386 restores only SP, the low half, and ESP's high half keeps whatever the system code left there. In 386 Enhanced mode, Windows 3.11 leaves `8001` at every timer tick. It's the same CPU behaviour that Linux has had to work around for 16-bit stacks, under the name "espfix".
+When an interrupt ends, the CPU returns to whatever stack the program was on. If that stack segment is a 16-bit one, a 386 restores only SP, the low half, and ESP's high half keeps whatever the system code left there. In 386 Enhanced mode, Windows 3.11 leaves `8001` at every timer tick.
 
 That also explains the failed experiment. A stack segment marked 32-bit gets all of ESP back, which is why the count dropped to zero. But making the task's own stack 32-bit put Windows' 16-bit KERNEL code on a stack it was never written for, and that's what faulted in `KRNL386`.
 
