@@ -64,7 +64,7 @@ Blog posts live in `content/blog` as Markdown files with front matter.
    - `excerpt`
    - `tags` (string array)
    - `draft` (`true` or `false`)
-3. Write the article body in standard Markdown below the front matter.
+3. Write the article body in standard Markdown below the front matter. Put images under `public/blog/<slug>/`, give each one alt text, and write its caption as an italic line directly below the image (the caption is styled when it follows the image in the same paragraph). A blockquote renders as an aside box, for example an "In this series" list.
 4. Run `pnpm build` and confirm the post appears at `/blog`.
 
 Draft behaviour:

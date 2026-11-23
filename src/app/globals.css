@@ -195,6 +195,55 @@ h3 {
   color: #8b949e;
 }
 
+/* A blockquote is the post's aside box, such as an "In this series" list. */
+.blog-prose blockquote {
+  border: 1px solid var(--border-color);
+  border-left: 3px solid var(--accent-orange);
+  border-radius: 10px;
+  background: var(--surface-color);
+  padding: 0.9rem 1.1rem;
+}
+
+.blog-prose blockquote > * + * {
+  margin-top: 0.6rem;
+}
+
+/* Images keep their aspect ratio; an emphasised line right after an image is its caption. */
+.blog-prose img {
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+}
+
+.blog-prose img + em {
+  display: block;
+  margin-top: 0.6rem;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+.blog-prose table {
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.blog-prose th,
+.blog-prose td {
+  border: 1px solid var(--border-color);
+  padding: 0.45rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.blog-prose th {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.04);
+}
+
 .back-to-top {
   position: fixed;
   right: 1.7rem;
