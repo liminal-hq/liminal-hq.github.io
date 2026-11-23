@@ -2,7 +2,7 @@
 title: "Cross-compiling to the past, part 3: Rust on Windows 95, 98 and Me"
 date: "2026-11-26"
 slug: "rust-on-windows-9x"
-excerpt: "Rust's standard library wants Windows 10. Windows Me shipped in 2000. A 2,560-byte no_std program, a handful of raw-dylib imports and four linker flags close the gap, all from a Linux machine with no Windows SDK."
+excerpt: "Windows 95 runs Win32 programs, and Rust builds Win32 programs, yet a Rust hello world won't start on Windows 95. The reason is that 9x speaks its own dialect of Win32. Learning it took a 2,560-byte no_std program, a few linker flags and an import allowlist, and the installer and Quill now build on that recipe."
 tags:
   - "Cross-compilation"
   - "Rust"
@@ -16,54 +16,62 @@ draft: true
 > **In this series: Cross-compiling to the past**
 >
 > 1. [Rust on DOS](/blog/rust-on-dos): a 32-bit protected-mode runtime, a packer, and a DOS installer.
-> 2. [Rust on Windows 3.1](/blog/rust-on-windows-3-1): 16-bit code, a hand-built NE executable, and what Windows does to your registers.
-> 3. **Rust on Windows 9x** (this post): 32-bit Windows 95, 98 and Me, on Rust's own Windows target.
+> 2. [Rust on Windows 3.1](/blog/rust-on-windows-3-1): 16-bit code, a hand-built NE executable, and a crash that arrives with the timer.
+> 3. **Rust on Windows 95, 98 and Me** (this post): why "any Win32 program" doesn't include Rust's, and what it takes to change that.
 
-![A Windows Me desktop with a window titled "Rust on Windows ME" that reads "Hello from Rust on Windows ME!"](/blog/rust-on-windows-9x/me-hello.png)
-_me-hello.exe on Windows Me (4.90.3000) in VirtualBox. Built by Rust 1.98 on Linux, 2,560 bytes. The Z: drive is a network share from the Linux host, unplugged for this screenshot, so the listing politely reports it missing._
+Windows 95 runs Win32 programs. Rust builds Win32 programs. Put the two together, and a stock Rust hello world still can't run there. After two parts of this series spent on systems Rust doesn't target, this was supposed to be the easy one.
 
-The program in that window was compiled by a Rust toolchain released in August 2026. The operating system around it came out in September 2000. Between the two sit twenty-six years of Windows changes, and nearly every one of them is a reason the program should not run.
+![A Windows 95 desktop with a window titled "Rust on Windows ME" that reads "Hello from Rust on Windows ME!", "no_std, i686-pc-windows-msvc, linked with lld-link", and a note that drive Z: is not mapped](/blog/rust-on-windows-9x/win95-me-hello.png)
+*`me-hello.exe` on Windows 95 OSR2.5 in DOSBox-X. It was written for Windows Me, hence the title, and it ran on 95 unchanged: 2,560 bytes, built by Rust 1.98 on Linux.*
 
-It runs anyway. This post covers the handful of things that had to go right, each checked against the bytes on disk, and why we care: Windows 95, 98 and Me are the next stop for Liminal Installer, our cross-platform installer project, after DOS and Windows 3.1.
+The program in that window does start, because it was written against a different picture of what Windows 95 is. This post is about that picture. The usual one, "Win32 is Win32", breaks in a few specific places, and once you see where, everything Liminal HQ has since built for these systems follows from it.
 
-![A pipeline diagram. On Linux: Rust source with no_std, no_main and raw-dylib imports goes to rustc 1.98 for i686-pc-windows-msvc with target-cpu=pentium, then to lld-link with /NODEFAULTLIB, /ENTRY:start, /SUBSYSTEM:WINDOWS,4.0 and /FIXED. The output, me-hello.exe, a 2,560-byte PE32 file with subsystem 4.0 and no relocations, goes by floppy image to Windows Me 4.90.3000 in VirtualBox, where it imports only kernel32.dll, user32.dll and gdi32.dll.](/blog/rust-on-windows-9x/pipeline.svg)
-_The whole pipeline. The top row runs on Linux with no Windows SDK; the bottom row is a floppy image and a 26-year-old operating system._
+## The belief: a 32-bit Windows program runs on any 32-bit Windows
 
-## Why stock Rust won't start
+It's a reasonable belief. Windows 95 brought the Win32 API to home PCs in 1995, Windows NT had it from 1993, and the function names match: `CreateWindowExA`, `GetMessageA`, `CreateFileW`. Most programs of the late 1990s ran on both. Plenty of people, me included, carried that assumption forward to "a 32-bit Windows program built today runs on Windows 95, if nothing in it is too new".
 
-Ask `cargo` for a normal hello world for `i686-pc-windows-msvc` and you get a program that Windows 9x cannot load, for three separate reasons.
+The Liminal Installer needed to know whether that held. After DOS and Windows 3.1, Windows 95, 98 and Me are the next systems its retro runtimes cover, and Quill, the word processor that has been following this series, wants a build for them too.
 
-The first is policy. Since Rust 1.78 the standard library on the regular Windows targets assumes Windows 10. There are tier-3 `*-win7-windows-msvc` targets that reach back to Windows 7, and nothing goes further. That is a reasonable call for a language that ships security fixes; it also means `std` is out of the question here.
+## A Rust hello world breaks it three ways
 
-The second is the C runtime. The linker command that `rustc` builds for a std program includes `"/defaultlib:msvcrt"`, which on a current Visual Studio means `vcruntime140.dll` and the Universal CRT. Neither has ever heard of Windows 98.
+Ask `cargo` for a normal hello world for `i686-pc-windows-msvc` and you get a program that Windows 9x can't load.
 
-The third is the import table, and it is the one that would bite even if the first two were solved. Running `llvm-nm -u` over the 1.98 `libstd` rlib for this target lists 139 Win32 functions it can import. Thirty-eight end in `W`: `CreateFileW`, `GetCommandLineW`, `FindFirstFileExW` and friends. A few are much newer than that: `WaitOnAddress` and `GetSystemTimePreciseAsFileTime` arrived in Windows 8, and `ProcessPrng` newer still. Five more are `Nt*` calls straight into `ntdll.dll`. The `NTDLL.DLL` on our Windows Me machine is 20 KB and exports 48 functions; `NtCreateFile` is one of them, while `NtOpenFile`, `NtReadFile` and `NtWriteFile` are not.
+The first reason is policy. Since Rust 1.78, the standard library on the regular Windows targets assumes Windows 10, and the tier-3 `*-win7-windows-msvc` targets reach back only to Windows 7. That's a fair call for a language that ships security fixes, and it puts `std` out of the question here.
 
-On this Linux machine the std build does not get as far as the import table. With `lld-link` and no Windows SDK installed, it stops here:
+The second is the C runtime. A `std` program links `msvcrt`, which on current Visual Studio means `vcruntime140.dll` and the Universal CRT, and neither has heard of Windows 98.
 
-```text
-lld-link: error: could not open 'kernel32.lib': No such file or directory
-lld-link: error: could not open 'ntdll.lib': No such file or directory
-lld-link: error: could not open 'userenv.lib': No such file or directory
-lld-link: error: could not open 'ws2_32.lib': No such file or directory
-lld-link: error: could not open 'dbghelp.lib': No such file or directory
-```
-
-That failure turns out to be a useful hint. The fix for all three problems is to stop asking for things.
+The third would bite even if the first two were solved. Running `llvm-nm -u` over the 1.98 `libstd` for this target lists 139 Win32 functions it can import. Thirty-eight end in `W`, such as `CreateFileW` and `GetCommandLineW`, and some arrived much later: `WaitOnAddress` in Windows 8, and `ProcessPrng` later still.
 
 ![A two-column table comparing stock Rust std with me-hello.exe: C runtime, import libraries, Win32 functions referenced, example imports, oldest Windows and file size.](/blog/rust-on-windows-9x/imports.svg)
-_What a std program asks Windows for, next to what me-hello.exe asks for. The left column comes from `llvm-nm` on libstd; the right from the PE import table._
+_What a std program asks Windows for, next to what `me-hello.exe` asks for. The left column comes from `llvm-nm` on libstd, the right from the finished file's import table._
 
-## The smallest program that opens a window
+On this Linux machine, with no Windows SDK installed, the `std` build doesn't even reach the import table. It stops at the linker with `could not open 'kernel32.lib'` and four more like it. That failure turned out to be a useful hint: the fix for all three problems is to stop asking for things.
 
-The reference project is a folder called `win9x-rust` with one `Cargo.toml`, one `.cargo/config.toml` and two programs: `src/main.rs`, which builds `me-hello.exe`, and `src/bin/me-files.rs`, a 737-line file manager. Both start the same way:
+## Windows 9x speaks a dialect of Win32
 
-```rust
-#![no_std]
-#![no_main]
-```
+Here is the model that replaced the belief. Windows NT was Unicode inside from the start, and its `...W` functions are its native interface. Windows 95, 98 and Me kept strings in the ANSI code page, Windows-1252 on an English install, and implemented only a handful of wide functions for real. The rest exist so that programs load, then fail when called.
 
-`no_std` drops the standard library: no `Vec`, no `String`, no `println!`, no allocator. `core` remains, with slices, iterators, `Option` and the rest of the language. `no_main` drops the runtime start-up code that would normally call `main`, which means we supply the entry point ourselves:
+It works like a regional dialect. The vocabulary looks the same, and a visitor who sticks to common words gets by. The analogy breaks in one useful place: a real dialect speaker would look puzzled at an unknown word, while Windows 9x nods along at load time and only fails when the word is used.
+
+> **What a nod looks like.** I copied `KERNEL32.DLL` off the Windows Me machine, by floppy, and disassembled it. It exports 148 names ending in `W`. Here is `CreateFileW`, in full:
+>
+> ```text
+> bff99b5d <CreateFileW>:
+> bff99b5d:  xorl  %eax, %eax
+> bff99b5f:  movb  $0x7, %cl
+> bff99b61:  jmp   0xbff61319
+> ```
+>
+> The jump lands in a shared stub that pushes `0x78` and calls `SetLastError`. `0x78` is 120, `ERROR_CALL_NOT_IMPLEMENTED`. `FindFirstFileExW` is the same three instructions with a different number in `cl`, while `GetCommandLineW` has a real body.
+
+The dialect also has rules about the file itself. Every Windows executable records the Windows version it expects, its subsystem version. Today's linkers stamp 6.0 (Windows Vista), and the 9x loader checks. I built the same program with plain `/SUBSYSTEM:WINDOWS` to see:
+
+![Two Windows Me error dialogs. The first, "Error Starting Program", says the A:\HELLO6.EXE file expects a newer version of Windows. The second says "A device attached to the system is not functioning."](/blog/rust-on-windows-9x/subsystem-6.png)
+_The same program stamped with subsystem 6.0. Windows Me refuses it twice: once accurately, and once with a message that has confused people since 1995._
+
+## Writing in the dialect starts with `no_std`
+
+The reference project, `win9x-rust`, has two programs: `me-hello`, the window at the top, and `me-files`, a 737-line file manager. Both drop the standard library and its start-up code with `#![no_std]` and `#![no_main]`, so the entry point is theirs to write:
 
 ```rust
 #[no_mangle]
@@ -81,254 +89,106 @@ pub extern "C" fn start() -> ! {
 }
 ```
 
-There is no C runtime underneath to return to, so the function's type is `-> !` and it ends by calling `ExitProcess`. Everything in between is the message loop from every Win32 tutorial written in 1996.
+That's the message loop from every Win32 tutorial written in 1996. There's no C runtime underneath to return to, so the function never returns and ends in `ExitProcess`, and a panic ends there too, with exit code 1.
 
-The window procedure handles two messages. `WM_PAINT` draws lines with `TextOutA` and lists the first twenty files on drive `Z:` with `FindFirstFileA` and `FindNextFileA`; `WM_DESTROY` posts the quit message. The structs (`WndClassA`, `Msg`, `PaintStruct`, `Win32FindDataA` and friends) are written out by hand with `#[repr(C)]`, about 70 lines copied field by field from the old headers.
-
-Panics need somewhere to go, and with `panic = "abort"` in both Cargo profiles and no `std`, that somewhere is ours too:
-
-```rust
-#[panic_handler]
-fn panic(_: &PanicInfo) -> ! {
-    unsafe { ExitProcess(1) }
-}
-```
-
-No message, no unwinding, no backtrace. The process ends with exit code 1, which is roughly what a 1999 program did on a bad day, minus the blue screen.
-
-## Imports without an SDK
-
-Normally a Windows program learns where `CreateWindowExA` lives from `user32.lib`, an import library that comes with the Windows SDK. We don't have the SDK and don't want it. Rust's `raw-dylib` link kind lets the compiler write the import table itself from the declarations in the source:
+Normally a program learns where `CreateWindowExA` lives from `user32.lib` in the Windows SDK. Rust's `raw-dylib` link kind lets the compiler write the import table itself from the declarations in the source:
 
 ```rust
 #[link(name = "user32", kind = "raw-dylib", import_name_type = "undecorated")]
 extern "system" {
     fn RegisterClassA(class: *const WndClassA) -> u16;
-    fn CreateWindowExA(/* twelve arguments */) -> Handle;
     fn GetMessageA(msg: *mut Msg, hwnd: Handle, min: u32, max: u32) -> i32;
-    // ...
 }
 ```
 
-`import_name_type = "undecorated"` matters on 32-bit x86 and nowhere else. The `stdcall` convention decorates symbol names with a leading underscore and the size of the arguments in bytes, so `ExitProcess` becomes `_ExitProcess@4` inside the object files. The DLLs that ship with Windows export the plain name, `ExitProcess`. The attribute tells `rustc` to put the plain name in the import table, which is what the Windows 95 loader will look up. Leave the attribute off and the program still builds without a murmur, but its import table now asks `kernel32.dll` for `_ExitProcess@4` and `_FindClose@4`, names that no version of Windows has ever exported. We checked by building it both ways.
+`import_name_type = "undecorated"` matters only on 32-bit x86. The `stdcall` convention decorates names, so `ExitProcess` becomes `_ExitProcess@4` inside the object files, while Windows exports the plain name. Leave the attribute off and the program still builds without complaint, but its import table asks `kernel32.dll` for `_ExitProcess@4`, a name no Windows has ever exported. I built it both ways to be sure.
 
-The result, read back from the finished file with `llvm-objdump -p me-hello.exe`:
+The finished `me-hello.exe` imports 16 functions from `kernel32`, `user32` and `gdi32`, and every one takes ANSI strings or none. The file manager imports 24, adding `ShellExecuteA` so Enter opens a file in its associated program. Neither has anything ending in `W`, and on the 9x side that means file names are bytes in the system code page, handed to the screen without decoding. Rust's literals are UTF-8, so the programs keep their own text to ASCII, where the two agree.
 
-```text
-    DLL Name: kernel32.dll
-    Hint/Ord  Name
-           0  ExitProcess
-           0  FindClose
-           0  FindFirstFileA
-           0  FindNextFileA
-           0  GetModuleHandleA
+## Four linker flags speak to a 1995 loader
 
-    DLL Name: user32.dll
-    Hint/Ord  Name
-           0  BeginPaint
-           0  CreateWindowExA
-           0  DefWindowProcA
-           0  DispatchMessageA
-           0  EndPaint
-           0  GetMessageA
-           0  LoadCursorA
-           0  PostQuitMessage
-           0  RegisterClassA
-           0  TranslateMessage
-
-    DLL Name: gdi32.dll
-    Hint/Ord  Name
-           0  TextOutA
-```
-
-Sixteen functions in three DLLs, every one taking ANSI strings or no strings at all, every one present in Windows 95. The hints are all zero because the linker never saw the DLLs' export tables; the loader simply looks each name up.
-
-The file manager's table has 24 entries. It swaps the painting calls for standard controls and brings in `GetLogicalDrives`, `SetErrorMode`, `DeleteFileA`, `RemoveDirectoryA`, `SendMessageA`, `MoveWindow`, `SetWindowTextA`, `SetFocus`, `MessageBoxA` and `GetStockObject`, plus one import from a fourth DLL: `ShellExecuteA` from `shell32.dll`, so that pressing Enter on a file opens it in whatever program Windows has associated with it. Still nothing with a `W` on the end.
-
-## Why everything ends in A
-
-Windows NT was Unicode inside from the start, and the `...W` functions are its native interface. Windows 95, 98 and Me were not. They kept strings in the active ANSI code page, Windows-1252 on an English install, and implemented only a handful of wide-character functions properly (`TextOutW` and `MessageBoxW` among them). Most of the rest exist as exports so that programs load, then fail with `ERROR_CALL_NOT_IMPLEMENTED` when called. Microsoft's eventual answer, the Microsoft Layer for Unicode (`unicows.dll`), arrived in 2001 as a separate download.
-
-You can see the trick in the DLL itself. We copied `KERNEL32.DLL` off the Windows Me machine (by floppy, of course) and disassembled it. It exports 148 names ending in `W`. Here is `CreateFileW`, in full:
-
-```text
-bff99b5d <CreateFileW>:
-bff99b5d:  xorl  %eax, %eax
-bff99b5f:  movb  $0x7, %cl
-bff99b61:  jmp   0xbff61319
-```
-
-Three instructions, then a jump to a shared stub that pushes `0x78` and calls `SetLastError`. `0x78` is 120, `ERROR_CALL_NOT_IMPLEMENTED`. `FindFirstFileExW` is the same three instructions with a different number in `cl`. A few wide functions are real: `GetCommandLineW` has an actual body. Guessing which is which at run time is no way to build a program, so we don't.
-
-So the honest position for version one is: ANSI only, in the system code page, with no Unicode. File names come back from `FindFirstFileA` as bytes in Windows-1252 and are handed straight to `TextOutA` or a list box without being decoded. Rust's string literals are UTF-8, so the program keeps its own text to ASCII, where the two agree. Converting properly, through `MultiByteToWideChar` and `WideCharToMultiByte` (which 9x does implement), can wait for a program that needs it.
-
-## Four linker flags for a 1999 loader
-
-The rest of the work lives in `.cargo/config.toml`:
+The rest is in `.cargo/config.toml`, and `lld-link`, LLVM's stand-in for Microsoft's `link.exe`, runs on Linux:
 
 ```toml
-[build]
-target = "i686-pc-windows-msvc"
-
 [target.i686-pc-windows-msvc]
 linker = "lld-link"
 rustflags = [
-    # Pentium-class codegen only: no SSE, which Windows 9x-era CPUs may lack.
     "-C", "target-cpu=pentium",
-    # No CRT and no std, so the entry point is ours and nothing newer than Win98 gets imported.
-    "-C", "link-arg=/NODEFAULTLIB",
-    "-C", "link-arg=/ENTRY:start",
-    # Subsystem version 4.0 is what the Windows 9x loader expects.
-    "-C", "link-arg=/SUBSYSTEM:WINDOWS,4.0",
-    # Windows 9x predates ASLR; load at the preferred base with no relocations.
-    "-C", "link-arg=/FIXED",
-    "-C", "link-arg=/DYNAMICBASE:NO",
+    "-C", "link-arg=/NODEFAULTLIB",          # no CRT, so msvcrt stays out
+    "-C", "link-arg=/ENTRY:start",           # our start, not mainCRTStartup
+    "-C", "link-arg=/SUBSYSTEM:WINDOWS,4.0", # what the 9x loader accepts
+    "-C", "link-arg=/FIXED",                 # no relocations
+    "-C", "link-arg=/DYNAMICBASE:NO",        # no ASLR flag
 ]
 ```
 
-`lld-link` is LLVM's drop-in for Microsoft's `link.exe`, and it runs on Linux. The rest, flag by flag:
+Subsystem 4.0 is the flag the loader enforces. `/FIXED` is about size: an EXE on Windows 9x always loads at its preferred base, so a relocation table is dead weight. Without it the file grows from 2,560 to 3,072 bytes, and that copy runs on Windows Me exactly like the original.
 
-- **`/NODEFAULTLIB`** tells the linker to ignore every library the object files ask for by default, which is how `msvcrt` stays out.
-- **`/ENTRY:start`** points the PE entry point at our `start` function instead of the CRT's `mainCRTStartup`.
-- **`/SUBSYSTEM:WINDOWS,4.0`** marks the file as a GUI program for Windows 4.0. `lld-link` stamps 6.0 (Windows Vista) if you don't say otherwise, and the 9x loader checks.
-- **`/FIXED`** and **`/DYNAMICBASE:NO`** give the file a fixed load address of `0x00400000` with no relocation table and no ASLR flag. Windows 9x has no ASLR, and an EXE there always loads at its preferred base, so the relocations would only take up space.
+`target-cpu=pentium` is the CPU half of the dialect. Rust's i686 targets assume SSE2, which arrived with the Pentium 4 in 2000, and plenty of machines that ran Windows 95 and 98 had no SSE at all. Rust 1.98 warns that turning SSE2 off on this target "is being phased out" and will become a hard error, because it changes how floats are passed. Neither program uses a float, and `llvm-objdump` finds no `xmm` register and no `cmov` in either binary.
 
-The PE header shows all of it:
+> **The memcpy nobody wrote.** The file manager first failed to link with `undefined symbol: _memcpy`. The compiler emits calls to `memcpy` for large copies and expects the C runtime to supply it. With the runtime gone, `me-files` defines its own, as a `rep movsb` in inline assembly. A plain byte loop would be the obvious body, but LLVM recognises copy loops and replaces them with a call to `memcpy`, which here would be the function calling itself forever.
 
-```text
-Characteristics 0x123
-	relocations stripped
-	executable
-	large address aware
-	32 bit words
-Magic                   010b	(PE32)
-ImageBase               00400000
-MajorOSystemVersion     4
-MinorOSystemVersion     0
-MajorSubsystemVersion   4
-MinorSubsystemVersion   0
-Subsystem               00000002	(Windows GUI)
-```
+## The model holds on a real Windows 95
 
-To find out whether the loader really checks, we built a second copy with plain `/SUBSYSTEM:WINDOWS` and tried it on Windows Me:
+The first version of this post could only say "Windows 95 and 98: not tested". Since then, a Windows 95 test bed has joined the installer repository. It runs Windows 95 OSR2.5 in DOSBox-X 2025.02.01, headless, from a read-only disk image with a throwaway copy per run, and drives the guest with typed keys and slow, one-pixel mouse steps.
 
-![Two Windows Me error dialogs. The first, "Error Starting Program", says the A:\HELLO6.EXE file expects a newer version of Windows. The second says "A device attached to the system is not functioning."](/blog/rust-on-windows-9x/subsystem-6.png)
-_The same program stamped with subsystem 6.0. Windows Me refuses it twice: once accurately, once with a message that has been confusing people since 1995._
+OSR2.5 isn't the 1995 retail floor, and the test bed records exactly what it is. Its `KERNEL32.DLL` and `SHELL32.DLL` are 4.00.1111, newer than retail's 4.00.950, and its `COMCTL32.DLL` is 4.70. A second image adds Internet Explorer 4.01 from the same disc, which brings the common controls up to 4.72.
 
-We tried the other flag too. Without `/FIXED` and `/DYNAMICBASE:NO` the file grows from 2,560 to 3,072 bytes: a 56-byte `.reloc` section, padded to the 512-byte file alignment. That copy runs on Windows Me exactly like the original. The loader copes with relocations fine; it just never needs them for an EXE. So `/FIXED` is there to save space, and 512 bytes is 20% of this program.
+Both reference programs ran on it unchanged, as the screenshot at the top shows. The file manager listed the drive, sorted folders first, and opened a folder on a double click under the IE4 image.
 
-## A Pentium, and a warning
+![A Windows 95 window titled Rust File Manager listing C:\ with Program Files, WIN95 and WINDOWS folders, then files such as AUTOEXEC.BAT, COMMAND.COM and IO.SYS with sizes, above a status line of keyboard shortcuts](/blog/rust-on-windows-9x/win95-me-files.png)
+*`me-files.exe` on Windows 95 OSR2.5: 19 items on `C:`, folders first. The program is 8,192 bytes.*
 
-`-C target-cpu=pentium` keeps the code generator to instructions a 1993 Pentium understands. The `i686` in the target name already rules out anything older than a Pentium Pro, and Rust's i686 targets go further and assume SSE2, which arrived with the Pentium 4 in 2000. Plenty of machines that ran Windows 98 had neither.
+Quill's Win32 build runs there too, with its menus, the two-row toolbar and the ruler. It's built the same way as the reference programs, with its imports held to a 96-entry allowlist and no `...W` entry points.
 
-Rust 1.98 is not entirely happy about this:
+![Quill on Windows 95: a window titled Quill - (Untitled) with a menu bar, a toolbar of file and edit buttons, a formatting bar with Normal, Times New Roman and 12 in drop-down boxes, bold, italic and underline buttons, alignment buttons, a ruler marked in inches and an empty page](/blog/rust-on-windows-9x/win95-quill.png)
+*`QUILL32.EXE` on Windows 95 OSR2.5 at 640 by 480 in 16 colours, the test bed's standard VGA mode.*
 
-```text
-warning: target feature `sse2` must be enabled to ensure that the ABI of the
-current target can be implemented correctly
-  = note: this was previously accepted by the compiler but is being phased out;
-          it will become a hard error in a future release!
-```
+## The installer turns the dialect into a build rule
 
-The ABI problem is floating point: how Rust passes and returns floats on this target depends on SSE2 being present, and without it the compiler can't promise to follow its own rules. Neither program uses a single float, so the warning has nothing to bite. We checked: `llvm-objdump -d` over both binaries finds no `xmm` register, no MMX and no `cmov`. For the day this becomes an error, the way out is a custom target JSON that switches SSE off from the start. Liminal's DOS runtime already works that way: its target names an `i486` and lists `-mmx,-sse,-sse2` among the features. The price is `-Zbuild-std`, an unstable option that parts 1 and 2 unlock with `RUSTC_BOOTSTRAP=1`. This project gets by with plain stable Rust and no unstable flags, for now.
+The installer's Win32 runtime is where the model stops being an observation and becomes a check that fails the build. Its `SETUP.EXE` runs the same flow VM and install engine as the DOS runtime from [Part 1](/blog/rust-on-dos), drawn with real Windows controls: check boxes, a `msctls_progress32` progress bar, and the shell's folder browser.
 
-## The memcpy that nobody wrote
+Three checks run in CI.
 
-`me-hello` links with nothing but its three DLLs. `me-files` did not, the first time:
+`check-imports.sh` fails on any import that isn't on a 94-entry allowlist of functions Windows 95 exports, and on any name ending in `W`. `check-pe.sh` requires a PE32 GUI program with subsystem 4.0 and no relocations. `scan-pentium.sh` fails on any MMX, SSE or `cmov` instruction.
+
+The allowlist was checked by hand against the Win32 reference, and nobody has yet read it off a Windows 95 disk. The test bed is now the place to close that gap.
+
+The CPU rule went further than in `win9x-rust`. The prebuilt `core` that Rust ships for `i686-pc-windows-msvc` was compiled assuming SSE2, and its library holds 812 `xmm` references and 618 `cmov` lines, so a stock build would fault on a Pentium, a Pentium MMX or an AMD K6, the machines Windows 95 ran on. The installer builds `core` from source for its own `i586` target with MMX, SSE and the x87 switched off, which is the custom-target escape hatch the first version of this post predicted.
+
+The result is about 135 KB as merged, and 115,200 bytes on the branch with Part 2's hand-written decoder. Under Wine, it installs and uninstalls Lieutenant Fizz and Planboard, with every page equal to its golden and the Start menu shortcut, the Add/Remove Programs entry and the files all checked, then checked again for removal. It has not yet run on Windows 95, 98 or Me. The test bed exists now, so that's the next run.
+
+## The Windows Me machine that froze
+
+One part of this story wasn't Rust at all. The Windows Me virtual machine, the one behind every Me screenshot in this series, froze more than once in VirtualBox 7.2.22. One session's log is unusually clear about the moment:
 
 ```text
-lld-link: error: undefined symbol: _memcpy
+00:01:52.996386 ALSA: Using output device "default"
+00:01:53.291833 Changing the VM state from 'RUNNING' to 'GURU_MEDITATION'
+00:01:53.292036 !!         VCPU0: Guru Meditation 1155 (VINF_EM_TRIPLE_FAULT)
 ```
 
-The compiler emits calls to `memcpy`, `memset` and friends whenever it copies a large struct, and on MSVC targets it expects the C runtime to provide them. `compiler_builtins`, the small library that ships with `core`, has Rust versions, but it does not export them on this target because the CRT normally would. The DOS and Win16 builds in parts 1 and 2 get them by rebuilding `core` with the `compiler-builtins-mem` feature, which again means `-Zbuild-std`. On plain stable, with the CRT thrown away, the file manager brings its own:
+A **triple fault** is the x86's last resort: a fault while handling a fault while handling a fault, after which a real PC resets. It came 0.3 seconds after the virtual sound card opened its output. The CPU was in ring 0 at `C0015774`, in the address range where Windows Me keeps its system code, and the last page fault was on the stack pointer's own address, so the system had lost its own stack.
 
-```rust
-#[no_mangle]
-pub unsafe extern "C" fn memcpy(dst: *mut c_void, src: *const c_void, n: usize) -> *mut c_void {
-    // esi is reserved by LLVM on x86, so swap the source pointer in and out of it.
-    asm!("xchg {src}, esi", "rep movsb", "xchg {src}, esi",
-         src = inout(reg) src => _, inout("ecx") n => _, inout("edi") dst => _,
-         options(nostack, preserves_flags));
-    dst
-}
-```
+Other details in the logs are suspicious without being proof. The host CPU runs at 4.5 GHz, and VirtualBox gave the guest a time-stamp counter of 4,294,967,295 ticks a second, the largest number 32 bits can hold. The VM also used a USB tablet for its pointer and had a USB 2.0 controller, which Windows Me shipped without a driver for.
 
-Two details in eight lines. A plain byte loop would be the obvious body, and LLVM would recognise it as a copy loop and replace it with a call to `memcpy`, which is this function, forever. Writing it as `rep movsb` in inline assembly puts it out of the optimiser's reach. And `rep movsb` reads from `esi`, a register LLVM keeps for itself on x86 and won't hand to an `asm!` block, hence the swap in and out. The same file defines `memmove`, `memset`, `memcmp` and `bcmp` so the next large copy doesn't send us back here. With LTO the copies are inlined: in the finished binary, `rep movsb` sits right after a `movl $0x110, %ecx`, copying a 272-byte directory entry when a row is opened or deleted.
+> **Known bugs in Windows 9x on fast CPUs.** The community project [patcher9x](https://github.com/JHRobotics/patcher9x) patches two that matter here. Windows 95 and the first edition of 98 divide by zero in a CPU speed test on processors of about 2 GHz and faster, and Windows 98, 98 SE and Me have a TLB invalidation bug that shows on AMD Zen 2 and Intel 11th-generation CPUs and newer. On Me, the project notes, the affected code runs rarely, during driver installs and system updates. The [patcher9x thread on VOGONS](https://www.vogons.org/viewtopic.php?f=24&t=88284) has the long version. I haven't applied either patch.
 
-## How big is it
-
-```text
-$ ls -l
--rwxr-xr-x 1 scott scott 8192 Oct 13 23:20 me-files.exe
--rwxr-xr-x 1 scott scott 2560 Oct 13 23:12 me-hello.exe
-```
-
-`me-hello.exe` is 1,024 bytes of headers (the MZ stub, still apologising that "This program cannot be run in DOS mode"), 512 bytes of code and 1,024 bytes of read-only data: strings, the import table and a 28-byte debug directory pointing at a `me_hello.pdb` that `strip = true` never got round to removing. The code itself is 501 bytes, 174 instructions.
-
-`me-files.exe` is 8,192 bytes, with 4,730 bytes of code. Its whole state lives in one `static mut`: 1,024 directory entries with 260-byte names, a sort order and a path buffer. That is 280,932 bytes of `.data`, all zeros, and it takes up no space at all in the file, because the section header says so:
-
-```text
-Name: .data
-VirtualSize: 0x44964
-RawDataSize: 0
-```
-
-The loader allocates the memory and zeroes it. Windows 95 knew how to do that, too.
-
-`opt-level = "z"`, LTO and a single codegen unit do some of the shrinking. Most of it comes from having no runtime: no CRT start-up, no panic formatting and no allocator.
-
-## Getting it onto Windows Me
-
-The test machine is a Windows Me virtual machine in VirtualBox on the same Linux box. VirtualBox has no Guest Additions for Windows 9x, so there is no drag and drop and no shared clipboard. Day to day, a batch file maps a network share from the host as `Z:` at login. For the screenshots we unplugged the virtual network cable and used the other classic: a floppy drive. A floppy image is a file `mtools` can write without root:
-
-```sh
-mformat -C -f 1440 -i a.img ::
-mcopy -i a.img me-hello.exe me-files.exe ::
-VBoxManage storageattach "Windows ME" --storagectl Floppy \
-  --port 0 --device 0 --type fdd --medium a.img
-```
-
-A 1.44 MB floppy holds both programs about 140 times over. From there it is Start, Run, `A:\me-hello.exe`. There is no mouse in this story: VirtualBox's command line can type keys into a guest (`VBoxManage controlvm "Windows ME" keyboardputstring` and `keyboardputscancode`) and take screenshots of it (`screenshotpng`), so every window in this post was opened from the keyboard, with Win+R, Alt+F4 and a lot of Tab.
-
-![The Windows Me Run dialog with A:\me-hello.exe typed into the Open box, above the taskbar and Start button.](/blog/rust-on-windows-9x/run.png)
-_Start, Run. Some things never needed improving._
-
-![The Windows Me file Properties dialog for ME-HELLO on drive A:, showing a size of 2.50 KB (2,560 bytes).](/blog/rust-on-windows-9x/properties.png)
-_Windows Me agrees about the size: 2.50 KB (2,560 bytes). The dates are the day the floppy image was written._
-
-`me-files` is the more convincing test, because it touches more of the system: a combo box of drives from `GetLogicalDrives`, a path label, a tab-stopped list box sorted folders-first with an insertion sort over an index array, and a status line. Enter opens, Backspace goes up, Delete removes after a `MessageBoxA` confirmation, F4 drops down the drive list and F5 refreshes. It calls `SetErrorMode(SEM_FAILCRITICALERRORS)` at start-up and skips `A:` and `B:` in the drive list, so an empty floppy drive never stops it with a critical-error box, the Windows descendant of "Abort, Retry, Fail?".
-
-![A window titled "Rust File Manager" with a C: drive selector, the path C:\, and a list of folders and files from the root of the Windows Me drive with their sizes, above a status line listing the keyboard shortcuts.](/blog/rust-on-windows-9x/me-files.png)
-_me-files.exe listing C:\ on Windows Me: 28 items, folders first, sizes rounded up to the kilobyte. 8,192 bytes of program, standard Win32 controls only._
-
-The shared folder the programs were developed against still holds its test fixtures: an empty `app-1` folder, a `notes.txt` that reads, in its entirety, `readme test`, and a `scratch-folder` containing a `delete-me.txt` that has so far survived.
-
-For the record, here is the machine, as Windows Me sees it:
+What changed since: the guest counter is pinned at 1 GHz, the USB 2.0 controller is gone, the pointer is a PS/2 mouse and the audio is off. The next session ran for 12 minutes and shut down normally. That's one clean run after four changes, so the cause isn't proven, and I can't say which change mattered. If you run Windows Me on a modern machine and it freezes, those four settings are where I'd look first.
 
 ![The Windows Me System Properties dialog: Microsoft Windows Me 4.90.3000, AuthenticAMD, AMD Ryzen 7 7700X 8-Core, 512.0MB RAM. The product ID is redacted.](/blog/rust-on-windows-9x/system-properties.png)
-_Windows Me 4.90.3000 on a Ryzen 7 7700X, a processor about 22 years younger than the operating system. Our code still sticks to Pentium instructions; the CPU would not mind either way._
-
-One thing did break during testing, and it wasn't Rust. The first boot for these screenshots froze solid about 45 seconds in, right after Windows Me opened the sound device: the log ends with the audio back end opening the host's ALSA output, and the virtual CPU never ran another instruction. Switching the VM's audio driver to `null` for the session fixed it. Retro computing, where the hard part is sometimes the sound card.
-
-### And under Wine
-
-Wine is the quick check before booting a VM. Both programs run under Wine 11.21 on the same Linux machine, with one amusing difference: Wine maps `Z:` to the Linux root directory, so `me-hello`'s "Contents of Z:\\ (the shared folder)" lists `bin`, `boot`, `etc` and `home`. Wine is a good test that the import table is sane. It is no test of the Windows 9x loader: the subsystem 6.0 build that Windows Me rejected twice opens under Wine without a word of complaint. The VM gets the final say.
+_The Windows Me VM as it sees itself: version 4.90.3000 on a Ryzen 7 7700X, a processor about 22 years younger than the operating system._
 
 ## What has and hasn't been tested
 
-- **Windows Me** (4.90.3000) in VirtualBox: both programs run, as the screenshots show.
-- **Wine 11.21** on Linux: both programs run.
-- **Windows 95 and Windows 98**: not tested, in a VM or on real hardware. Everything the programs import exists on Windows 95, the PE header asks for 4.0, and nothing uses an instruction a Pentium lacks, so we expect them to work. Expecting is not testing, and we'll update this post when one of them gets booted.
-- **Real hardware** of any kind: not yet.
+- `me-hello` and `me-files` run on Windows Me 4.90.3000 in VirtualBox, on Windows 95 OSR2.5 in DOSBox-X, and under Wine 11.21.
+- Quill's Win32 build runs on Windows 95 OSR2.5 in the test bed, and its earlier milestones ran on the Windows Me VM.
+- The installer's Win32 `SETUP.EXE` has run only under Wine.
+- Not tested: retail Windows 95 (4.00.950), Windows 98, and any real hardware.
+- Wine is a sanity check only. The subsystem 6.0 build that Windows Me refused twice opens under Wine without a word.
 
-## Where this goes: Liminal Installer on Windows 9x
+## Next
 
-Liminal Installer takes one installer project and builds it for each kind of machine, with a renderer to match. Its DOS runtime already exists: a `no_std` Rust `SETUP.EXE` whose core, `li-retro`, holds the compiled project format, the condition and flow VMs, a text-mode renderer and the installer engine, with a thin platform crate underneath for the screen, keys and files. Part 2 of this series covered the Windows 3.1 side.
+So Windows 95 doesn't run every Win32 program. It runs programs written in its dialect: ANSI functions only, subsystem 4.0, nothing newer than a Pentium, and nothing from a C runtime it never shipped. Rust can write that dialect from a Linux machine with no Windows SDK, as long as checks in the build hold it to the rules.
 
-Everything in this section is **planned, not built**. The 32-bit Windows piece is the `win32-classic` renderer: plain Win32 controls, bevelled 90s dialogs and tiny downloads, for Windows 95 through 11. The idea is a `li-win9x-rt` runtime that drives the same shared `no_std` flow VM as the DOS runtime and swaps the text-mode platform for native dialogs through `user32` and `comctl32`, using exactly the recipe in this post: `raw-dylib` imports, ANSI entry points, subsystem 4.0, no CRT. If a file manager fits in 8 KB, a setup wizard should leave most of a floppy for the payload.
-
-A note on the Windows 3.1 work from part 2: Windows 95, 98 and Me still carry the Win16 subsystem, and part 2's 16-bit `SETUP.EXE` ran to its last page on this same Windows Me VM. Whether it does the same on 95 and 98 is untested. Either way it is a bonus on these systems. The plan for Windows 95 and later is the 32-bit installer, which can use long file names, the registry and the 32-bit common controls without any thunking.
-
-## What comes next
-
-The installer is half the reason for this series. The other half is Quill, a small rich-text word processor for DOS, Windows 3.1 and Windows 95, 98 and Me, written in Rust from one shared core. It is still in the planning stage as a local experiment, and its 32-bit Windows build will come from exactly the approach in this post: `no_std`, `raw-dylib`, `...A` functions and a loader from 1995. Once there is a Quill to show, a capstone post will follow with the word processor and the installer that ships it, on all three platforms.
+That's the last of the three platforms. Quill runs on DOS and Windows 95 from one Rust core, and its first Windows 3.11 test programs pass. The installer that will ship it has working runtimes for DOS and Windows 95 and two halves of one for Windows 3.1. A capstone post will put them together once Quill reaches its first release disks.

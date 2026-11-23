@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" width="900" height="560" role="img" aria-labelledby="t d">
   <title id="t">What stock Rust imports compared with what me-hello.exe imports</title>
-  <desc id="d">A comparison table. Stock Rust std for i686-pc-windows-msvc links the MSVC runtime, needs five import libraries, and its standard library references 139 Win32 functions, 38 of them wide-character, including WaitOnAddress, GetSystemTimePreciseAsFileTime and ProcessPrng, and supports Windows 10 and later. me-hello.exe links no runtime, needs no import libraries, imports 16 functions from kernel32, user32 and gdi32 that all exist on Windows 95, and was tested on Windows Me.</desc>
+  <desc id="d">A comparison table. Stock Rust std for i686-pc-windows-msvc links the MSVC runtime, needs five import libraries, and its standard library references 139 Win32 functions, 38 of them wide-character, including WaitOnAddress, GetSystemTimePreciseAsFileTime and ProcessPrng, and supports Windows 10 and later. me-hello.exe links no runtime, needs no import libraries, imports 16 functions from kernel32, user32 and gdi32 that all exist on Windows 95, and was tested on Windows Me, Windows 95 OSR2.5 and Wine.</desc>
   <style>
     .h { font: 700 18px 'Space Grotesk', 'Inter', 'DejaVu Sans', sans-serif; fill: #f2f2f2; }
     .row { font: 600 14px 'Inter', 'DejaVu Sans', sans-serif; fill: #b4bfce; }
@@ -64,7 +64,7 @@
   <text x="216" y="444" class="t">Windows 10</text>
   <text x="216" y="464" class="m">Windows 7 with the tier-3 *-win7-* targets</text>
   <text x="566" y="444" class="t">Windows 95 by design</text>
-  <text x="566" y="464" class="m">tested on Windows Me and Wine</text>
+  <text x="566" y="464" class="m">tested on Me, 95 OSR2.5 and Wine</text>
   <line x1="20" y1="484" x2="880" y2="484" class="rule"/>
 
   <text x="24" y="514" class="row">File size</text>
