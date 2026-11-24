@@ -193,7 +193,7 @@ That still wasn't enough. To remove the wall, the NE packer now places functions
 
 Segments can even be discarded under memory pressure and reloaded on demand, through a gate that moves to the 16-bit stack while Windows does the reloading. The limits are 253 code segments and a 1 MB file, and no single function may be bigger than one segment.
 
-To prove both fixes together, there's `BIGSEG.EXE`: 88 KB of Rust code across five segments, with segment 3 discarded and reloaded on every run, jump tables turned back on, and every result checked against a second implementation. On Windows for Workgroups 3.11 in DOSBox-X it passed 40 runs out of 40 with the stack alias on. With the alias off, the same program gave wrong results in 3 runs out of 20, about 1 in 7, close to the installer's earlier 1 in 6. The stack code costs a little: the smallest program, `MSGBOX.EXE`, grew from 620 to 948 bytes.
+To prove both fixes together, there's `BIGSEG.EXE`: 88 KB of Rust code across five segments, with segment 3 discarded and reloaded on every run, jump tables turned back on, and every result checked against a second implementation. On Windows for Workgroups 3.11 in DOSBox-X it passed 40 runs out of 40 with the stack alias on. The same program with the alias skipped gave wrong results in 7 runs out of 40, about 1 in 6, the same rate as the installer's earlier start-up failures, and `RegisterClass` failed in all 35 runs that got that far. A 512-byte stack buffer checked across yielding calls, memory compaction and a window procedure, 840 checks in all, never changed a byte with the alias on. The stack code costs a little: the smallest program, `MSGBOX.EXE`, grew from 620 to 948 bytes.
 
 ## The whole installer now runs as one program
 
@@ -207,6 +207,7 @@ With both walls down, the installer's Windows 3.1 `SETUP.EXE` links as one progr
 - Only DOSBox-X and Wine have run the installer. Since the cause of the crash is how a 386 returns to a 16-bit stack, I expect real hardware to behave the same, but no real 386 or 486 and no other emulator has run it.
 - Only Windows for Workgroups 3.11 has run it. Retail Windows 3.1 hasn't been tried in either mode, and Windows Me hasn't run the stack-alias build.
 - No 286 and no Standard mode. Windows for Workgroups 3.11 refuses `WIN /S`.
+- One unexplained failure: with the alias on, `RegisterClass` returned 0 once in about 90 runs of `BIGSEG.EXE`, and that run's log wasn't kept, so a rare remaining problem can't be ruled out.
 - No Program Manager group. Making one through a DDE conversation with Program Manager is still unbuilt.
 - The multi-segment packer and the stack alias are in an open pull request on rust-win16, and the installer's Windows 3.1 runtime, with the "after" sizes in the table, is on a branch that isn't merged yet.
 
