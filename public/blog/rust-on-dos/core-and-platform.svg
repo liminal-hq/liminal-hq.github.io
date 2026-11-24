@@ -1,103 +1,55 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 560" width="760" height="560" role="img" aria-labelledby="t d">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 800" width="440" height="800" role="img" aria-labelledby="t d">
   <title id="t">A portable core with thin platform crates</title>
-  <desc id="d">Three projects share one shape. Desk: the no_std shell crates over a hardware abstraction layer, with a DOS adapter on rt and a native kernel. Lieutenant Fizz 2: the no_std rules and view crates, with a DOS presenter on its runtime and a WebAssembly presenter. Liminal Installer: the no_std li-retro core behind a Platform trait, with SETUP.EXE on DOS and a host simulator for tests. Only the bottom row knows about DOS.</desc>
+  <desc id="d">Three projects share one shape. Desk: shell crates with no DOS calls, a hardware abstraction layer, then a DOS shell and a native kernel. Lieutenant Fizz 2: rules and view crates stepping at 60 Hz with a state hash, a hardware layer, then a DOS build and a WebAssembly build. Liminal Installer: the li-retro core with the flow and condition machines and the install engine, a Platform trait, then SETUP.EXE on DOS and a host simulator for tests. Only the bottom row of each knows about DOS.</desc>
   <style>
     .bg { fill: #0c0c12; }
-    .col { font: 600 16px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #ffffff; }
-    .band { font: 600 12.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #b4bfce; letter-spacing: 0.06em; }
-    .t { font: 600 13.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #ffffff; }
-    .s { font: 12px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #b4bfce; }
-    .m { font: 12px ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; fill: #22d3ee; }
-    .core { fill: #1a1430; stroke: #a78bfa; stroke-width: 1.2; }
-    .seam { fill: #16161f; stroke: rgba(255,255,255,0.22); stroke-width: 1.2; stroke-dasharray: 5 3; }
-    .dos { fill: #0f1a3d; stroke: #60a5fa; stroke-width: 1.2; }
-    .other { fill: #13221c; stroke: #3fb950; stroke-width: 1.2; }
-    .rule { stroke: rgba(255,255,255,0.12); stroke-width: 1; }
-    .link { stroke: rgba(255,255,255,0.35); stroke-width: 1.4; }
+    .core { fill: #1d1430; stroke: #a78bfa; stroke-width: 1.2; }
+    .seam { fill: #2a1d0c; stroke: #ffaa40; stroke-width: 1.2; }
+    .plat { fill: #0f1a3d; stroke: #60a5fa; stroke-width: 1.2; }
+    .other { fill: #16161f; stroke: rgba(255,255,255,0.3); stroke-width: 1.2; }
+    .h { font: 600 18px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #ffffff; }
+    .k { font: 600 13px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #8b949e; letter-spacing: 0.06em; }
+    .p { font: 15px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #c3ccd8; }
+    .note { font: 15px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #ffaa40; }
   </style>
-  <rect class="bg" width="760" height="560" rx="14"/>
+  <rect class="bg" width="440" height="800" rx="14"/>
 
-  <text class="band" x="24" y="96">PORTABLE CORE</text>
-  <text class="band" x="24" y="250">THE SEAM</text>
-  <text class="band" x="24" y="360">PLATFORMS</text>
-  <line class="rule" x1="24" y1="226" x2="736" y2="226"/>
-  <line class="rule" x1="24" y1="336" x2="736" y2="336"/>
+  <text class="h" x="20" y="66">Desk</text>
+  <rect class="core" x="20" y="78" width="400" height="58" rx="6"/>
+  <text class="p" x="34" y="102">shell crates: windows, drawing, fonts</text>
+  <text class="p" x="34" y="124">no_std, no DOS calls</text>
+  <rect class="seam" x="20" y="142" width="400" height="36" rx="6"/>
+  <text class="p" x="34" y="166">hal/: display, input and timer traits</text>
+  <rect class="plat" x="20" y="184" width="196" height="40" rx="6"/>
+  <text class="p" x="34" y="210">DOS: SHELL.EXE</text>
+  <rect class="other" x="224" y="184" width="196" height="40" rx="6"/>
+  <text class="p" x="238" y="210">native kernel</text>
 
-  <text class="col" x="24" y="40">Desk</text>
-  <text class="col" x="268" y="40">Lieutenant Fizz 2</text>
-  <text class="col" x="512" y="40">Liminal Installer</text>
+  <text class="h" x="20" y="276">Lieutenant Fizz 2</text>
+  <rect class="core" x="20" y="288" width="400" height="58" rx="6"/>
+  <text class="p" x="34" y="312">rules and view crates</text>
+  <text class="p" x="34" y="334">60 Hz ticks and a state hash</text>
+  <rect class="seam" x="20" y="352" width="400" height="36" rx="6"/>
+  <text class="p" x="34" y="376">fizz-hal: clock, input, display</text>
+  <rect class="plat" x="20" y="394" width="196" height="40" rx="6"/>
+  <text class="p" x="34" y="420">DOS: FIZZ2.EXE</text>
+  <rect class="other" x="224" y="394" width="196" height="40" rx="6"/>
+  <text class="p" x="238" y="420">Web: WebAssembly</text>
 
-  <!-- Desk -->
-  <rect class="core" x="24" y="108" width="224" height="104" rx="8"/>
-  <text class="t" x="36" y="130">Shell crates</text>
-  <text class="m" x="36" y="150">wm ui gfx font present</text>
-  <text class="s" x="36" y="172">windows, focus, drawing,</text>
-  <text class="s" x="36" y="190">fonts; no_std, no DOS calls</text>
-  <rect class="seam" x="24" y="262" width="224" height="60" rx="8"/>
-  <text class="t" x="36" y="284">hal/</text>
-  <text class="s" x="36" y="304">display, input, timer traits</text>
-  <rect class="dos" x="24" y="372" width="108" height="96" rx="8"/>
-  <text class="t" x="34" y="394">DOS</text>
-  <text class="m" x="34" y="414">shell/dos</text>
-  <text class="m" x="34" y="432">+ dos/rt</text>
-  <text class="s" x="34" y="454">SHELL.EXE</text>
-  <rect class="other" x="140" y="372" width="108" height="96" rx="8"/>
-  <text class="t" x="150" y="394">Native</text>
-  <text class="m" x="150" y="414">kernel/</text>
-  <text class="s" x="150" y="436">boots on its</text>
-  <text class="s" x="150" y="454">own drivers</text>
+  <text class="h" x="20" y="486">Liminal Installer</text>
+  <rect class="core" x="20" y="498" width="400" height="58" rx="6"/>
+  <text class="p" x="34" y="522">li-retro: flow and condition VMs,</text>
+  <text class="p" x="34" y="544">text renderer, install engine</text>
+  <rect class="seam" x="20" y="562" width="400" height="36" rx="6"/>
+  <text class="p" x="34" y="586">trait Platform: screen, keys, files</text>
+  <rect class="plat" x="20" y="604" width="196" height="40" rx="6"/>
+  <text class="p" x="34" y="630">DOS: SETUP.EXE</text>
+  <rect class="other" x="224" y="604" width="196" height="40" rx="6"/>
+  <text class="p" x="238" y="630">host, for tests</text>
 
-  <!-- Fizz 2 -->
-  <rect class="core" x="268" y="108" width="224" height="104" rx="8"/>
-  <text class="t" x="280" y="130">Rules and view</text>
-  <text class="m" x="280" y="150">fizz-sim fizz-phys fizz-ep2</text>
-  <text class="m" x="280" y="168">fizz-view fizz-slice-view</text>
-  <text class="s" x="280" y="190">60 Hz ticks and a state hash</text>
-  <rect class="seam" x="268" y="262" width="224" height="60" rx="8"/>
-  <text class="t" x="280" y="284">fizz-hal</text>
-  <text class="s" x="280" y="304">clock, input, display, ring</text>
-  <rect class="dos" x="268" y="372" width="108" height="96" rx="8"/>
-  <text class="t" x="278" y="394">DOS</text>
-  <text class="m" x="278" y="414">dos/fizz2</text>
-  <text class="m" x="278" y="432">+ dos/rt</text>
-  <text class="s" x="278" y="454">FIZZ2.EXE</text>
-  <rect class="other" x="384" y="372" width="108" height="96" rx="8"/>
-  <text class="t" x="394" y="394">Web</text>
-  <text class="m" x="394" y="414">present-web</text>
-  <text class="s" x="394" y="436">WebAssembly</text>
-  <text class="s" x="394" y="454">in a browser</text>
-
-  <!-- Installer -->
-  <rect class="core" x="512" y="108" width="224" height="104" rx="8"/>
-  <text class="t" x="524" y="130">li-retro</text>
-  <text class="s" x="524" y="150">format, condition and flow VMs,</text>
-  <text class="s" x="524" y="168">text renderer, install engine</text>
-  <text class="s" x="524" y="190">no_std + alloc, host-tested</text>
-  <rect class="seam" x="512" y="262" width="224" height="60" rx="8"/>
-  <text class="t" x="524" y="284">trait Platform</text>
-  <text class="s" x="524" y="304">screen, keys, files, free space</text>
-  <rect class="dos" x="512" y="372" width="108" height="96" rx="8"/>
-  <text class="t" x="522" y="394">DOS</text>
-  <text class="m" x="522" y="414">dos/setup</text>
-  <text class="m" x="522" y="432">+ dos/rt</text>
-  <text class="s" x="522" y="454">SETUP.EXE</text>
-  <rect class="other" x="628" y="372" width="108" height="96" rx="8"/>
-  <text class="t" x="638" y="394">Host</text>
-  <text class="m" x="638" y="414">sim</text>
-  <text class="s" x="638" y="436">HostPlatform</text>
-  <text class="s" x="638" y="454">for the tests</text>
-
-  <!-- links -->
-  <line class="link" x1="136" y1="212" x2="136" y2="262"/>
-  <line class="link" x1="78" y1="322" x2="78" y2="372"/>
-  <line class="link" x1="194" y1="322" x2="194" y2="372"/>
-  <line class="link" x1="380" y1="212" x2="380" y2="262"/>
-  <line class="link" x1="322" y1="322" x2="322" y2="372"/>
-  <line class="link" x1="438" y1="322" x2="438" y2="372"/>
-  <line class="link" x1="624" y1="212" x2="624" y2="262"/>
-  <line class="link" x1="566" y1="322" x2="566" y2="372"/>
-  <line class="link" x1="682" y1="322" x2="682" y2="372"/>
-
-  <text class="s" x="24" y="508">Only the blue boxes know about DOS. The same core is tested on the host (and, for Fizz 2, in a browser)</text>
-  <text class="s" x="24" y="528">before it ever meets DOSBox, so a bug in the DOS layer is a small search.</text>
+  <text class="note" x="20" y="690">Purple: the core. Orange: the seam. Grey: not DOS.</text>
+  <text class="note" x="20" y="666">Only the blue boxes know about DOS.</text>
+  <text class="p" x="20" y="716">Each core is tested on the host (and Fizz 2</text>
+  <text class="p" x="20" y="740">in a browser) before it meets DOSBox, so a</text>
+  <text class="p" x="20" y="764">DOS bug is a search through the blue boxes.</text>
 </svg>
