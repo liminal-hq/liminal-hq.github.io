@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 820" width="440" height="820" role="img" aria-labelledby="t d">
+  <title id="t">Inside MSGBOX.EXE, 620 bytes</title>
+  <desc id="d">The file from top to bottom: a 128-byte MZ header and DOS stub at offset 0, the NE header at 0x80, the segment table at 0xC0, the name, module and entry tables at 0xD0, the 261-byte code segment at 0x110 with four far-call sites, four relocation records at 0x215 that point back to those sites, and the 44-byte data segment at 0x240 whose first 16 bytes are kept free for Windows. The file ends at 0x26C. The four far calls, in file order, are INITTASK (KERNEL.91) at 0x001, InitApp (USER.5) at 0x03C, MessageBox (USER.1) at 0x06D and WaitEvent (KERNEL.30) at 0x093.</desc>
+  <style>
+    .bg { fill: #0c0c12; }
+    .box { fill: #16161f; stroke: rgba(255,255,255,0.25); stroke-width: 1.2; }
+    .code { fill: #0f1a3d; stroke: #60a5fa; stroke-width: 1.2; }
+    .data { fill: #1d1430; stroke: #a78bfa; stroke-width: 1.2; }
+    .site { fill: #ffaa40; }
+    .h { font: 600 17px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #ffffff; }
+    .p { font: 15px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #c3ccd8; }
+    .off { font: 14px ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; fill: #8b949e; }
+    .m { font: 14px ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; fill: #22d3ee; }
+    .note { font: 15px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #ffaa40; }
+  </style>
+  <rect class="bg" width="440" height="820" rx="14"/>
+  <text class="h" x="20" y="34">MSGBOX.EXE, 620 bytes</text>
+
+  <text class="off" x="20" y="72">0x000</text>
+  <rect class="box" x="80" y="52" width="340" height="54" rx="6"/>
+  <text class="h" x="94" y="74">MZ header and DOS stub</text>
+  <text class="p" x="94" y="96">prints a polite refusal</text>
+
+  <text class="off" x="20" y="132">0x080</text>
+  <rect class="box" x="80" y="112" width="340" height="32" rx="6"/>
+  <text class="h" x="94" y="134">NE header</text>
+
+  <text class="off" x="20" y="170">0x0C0</text>
+  <rect class="box" x="80" y="150" width="340" height="32" rx="6"/>
+  <text class="p" x="94" y="172">segment table: 2 entries</text>
+
+  <text class="off" x="20" y="208">0x0D0</text>
+  <rect class="box" x="80" y="188" width="340" height="54" rx="6"/>
+  <text class="p" x="94" y="210">names, modules, entry table</text>
+  <text class="m" x="94" y="232">MSGBOX KERNEL USER</text>
+
+  <text class="off" x="20" y="268">0x110</text>
+  <rect class="code" x="80" y="248" width="340" height="170" rx="6"/>
+  <text class="h" x="94" y="272">Code segment, 261 bytes</text>
+  <rect class="site" x="80" y="286" width="340" height="5"/>
+  <rect class="site" x="80" y="316" width="340" height="5"/>
+  <rect class="site" x="80" y="346" width="340" height="5"/>
+  <rect class="site" x="80" y="376" width="340" height="5"/>
+  <text class="m" x="94" y="308">9A FF FF 00 00</text>
+  <text class="p" x="94" y="338">call far ????:????</text>
+  <text class="p" x="94" y="406">four far calls to patch</text>
+
+  <text class="off" x="20" y="444">0x215</text>
+  <rect class="box" x="80" y="424" width="340" height="32" rx="6"/>
+  <text class="h" x="94" y="446">4 relocation records</text>
+
+  <text class="off" x="20" y="482">0x240</text>
+  <rect class="data" x="80" y="462" width="340" height="54" rx="6"/>
+  <text class="h" x="94" y="484">Data segment, 44 bytes</text>
+  <text class="p" x="94" y="506">first 16 bytes kept for Windows</text>
+
+  <text class="off" x="20" y="540">0x26C</text>
+  <text class="p" x="94" y="540">end of file</text>
+
+  <text class="h" x="20" y="590">The four far calls, in file order</text>
+  <rect class="site" x="20" y="604" width="5" height="128"/>
+  <text class="m" x="36" y="620">0x001  KERNEL.91  INITTASK</text>
+  <text class="m" x="36" y="654">0x03C  USER.5     InitApp</text>
+  <text class="m" x="36" y="688">0x06D  USER.1     MessageBox</text>
+  <text class="m" x="36" y="722">0x093  KERNEL.30  WaitEvent</text>
+  <text class="note" x="20" y="770">Each site holds FFFF until the loader</text>
+  <text class="note" x="20" y="794">writes the real far address.</text>
+</svg>

@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 700" width="440" height="700" role="img" aria-labelledby="t d">
+  <title id="t">How a timer tick breaks a code16 stack read</title>
+  <desc id="d">Four steps in time. An import shim returns from a Windows call and clears the high half of ESP, so ESP is 000044D2. Rust code reads the stack with mov esi, [esp+0x14], which reaches offset 44E6 inside the 64 KiB stack segment. A timer tick arrives, about 20 times a second under DOSBox-X, and ESP comes back as 800144D2. The next stack read uses all 32 bits, asks for an offset about 2 GiB past the end of the segment, and faults. A long stretch of work between API calls is more likely to meet a tick.</desc>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#ffaa40"/>
+    </marker>
+  </defs>
+  <style>
+    .bg { fill: #0c0c12; }
+    .ok { fill: #0f1a3d; stroke: #60a5fa; stroke-width: 1.2; }
+    .tick { fill: #2a1d0c; stroke: #ffaa40; stroke-width: 1.2; }
+    .bad { fill: #2d0f16; stroke: #f87171; stroke-width: 1.2; }
+    .h { font: 600 17px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #ffffff; }
+    .p { font: 15px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #c3ccd8; }
+    .m { font: 14px ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; fill: #22d3ee; }
+    .r { font: 14px ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; fill: #f87171; }
+    .note { font: 15px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #ffaa40; }
+    .line { stroke: #ffaa40; stroke-width: 1.8; fill: none; }
+  </style>
+  <rect class="bg" width="440" height="700" rx="14"/>
+  <text class="h" x="20" y="34">One stack read, before and after a tick</text>
+
+  <rect class="ok" x="20" y="52" width="190" height="140" rx="6"/>
+  <text class="h" x="34" y="78">1. Shim returns</text>
+  <text class="p" x="34" y="100">after a Windows call</text>
+  <text class="m" x="34" y="126">movzx esp, sp</text>
+  <text class="p" x="34" y="156">ESP =</text>
+  <text class="m" x="34" y="178">000044D2</text>
+
+  <rect class="ok" x="230" y="52" width="190" height="140" rx="6"/>
+  <text class="h" x="244" y="78">2. Rust runs</text>
+  <text class="m" x="244" y="104">mov esi,</text>
+  <text class="m" x="244" y="124">  [esp+0x14]</text>
+  <text class="p" x="244" y="156">offset 44E6,</text>
+  <text class="p" x="244" y="178">inside 64 KiB</text>
+
+  <rect class="tick" x="20" y="222" width="190" height="140" rx="6"/>
+  <text class="h" x="34" y="248">3. Timer tick</text>
+  <text class="p" x="34" y="270">about 20 a second</text>
+  <text class="p" x="34" y="292">under DOSBox-X</text>
+  <text class="p" x="34" y="326">ESP comes back</text>
+  <text class="r" x="34" y="348">800144D2</text>
+
+  <rect class="bad" x="230" y="222" width="190" height="140" rx="6"/>
+  <text class="h" x="244" y="248">4. Next read</text>
+  <text class="m" x="244" y="274">mov esi,</text>
+  <text class="m" x="244" y="294">  [esp+0x14]</text>
+  <text class="p" x="244" y="326">about 2 GiB past</text>
+  <text class="r" x="244" y="348">the segment: fault</text>
+
+  <path class="line" d="M210 122 H228" marker-end="url(#a)"/>
+  <path class="line" d="M325 192 V205 H115 V220" marker-end="url(#a)"/>
+  <path class="line" d="M210 292 H228" marker-end="url(#a)"/>
+
+  <text class="h" x="20" y="410">Why the length of the work matters</text>
+  <rect class="ok" x="20" y="426" width="80" height="30" rx="4"/>
+  <text class="p" x="30" y="447">API call</text>
+  <rect class="ok" x="108" y="426" width="56" height="30" rx="4"/>
+  <text class="p" x="116" y="447">short</text>
+  <rect class="ok" x="172" y="426" width="80" height="30" rx="4"/>
+  <text class="p" x="182" y="447">API call</text>
+  <rect class="ok" x="20" y="466" width="400" height="30" rx="4"/>
+  <text class="p" x="30" y="487">long: decode the project, unpack a file</text>
+  <rect class="tick" x="380" y="462" width="6" height="38"/>
+  <text class="note" x="20" y="540">Each API call ends in a shim that cleans</text>
+  <text class="note" x="20" y="562">ESP, so short stretches of Rust rarely</text>
+  <text class="note" x="20" y="584">meet a tick. A few milliseconds of work</text>
+  <text class="note" x="20" y="606">often does.</text>
+  <text class="p" x="20" y="652">Measured with a probe on Windows for</text>
+  <text class="p" x="20" y="674">Workgroups 3.11 in DOSBox-X.</text>
+</svg>
