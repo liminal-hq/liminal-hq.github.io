@@ -1,74 +1,71 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" width="900" height="560" role="img" aria-labelledby="t d">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 860" width="440" height="860" role="img" aria-labelledby="t d">
   <title id="t">What stock Rust imports compared with what me-hello.exe imports</title>
-  <desc id="d">A comparison table. Stock Rust std for i686-pc-windows-msvc links the MSVC runtime, needs five import libraries, and its standard library references 139 Win32 functions, 38 of them wide-character, including WaitOnAddress, GetSystemTimePreciseAsFileTime and ProcessPrng, and supports Windows 10 and later. me-hello.exe links no runtime, needs no import libraries, imports 16 functions from kernel32, user32 and gdi32 that all exist on Windows 95, and was tested on Windows Me, Windows 95 OSR2.5 and Wine.</desc>
+  <desc id="d">A comparison. Stock Rust with std for i686-pc-windows-msvc links the MSVC runtime, needs five import libraries, and its standard library references 139 Win32 functions, 38 of them wide-character, plus Nt calls into ntdll, including WaitOnAddress and ProcessPrng, which no Windows before 8 or 10 has; it supports Windows 10 and later, or Windows 7 with the tier-3 win7 targets, and does not link on Linux without an SDK. me-hello.exe links no runtime, needs no import libraries, imports 16 ANSI functions from kernel32, user32 and gdi32, all present in Windows 95, and is 2,560 bytes; it has run on Windows Me, Windows 95 OSR2.5 and Wine.</desc>
   <style>
-    .h { font: 700 18px 'Space Grotesk', 'Inter', 'DejaVu Sans', sans-serif; fill: #f2f2f2; }
-    .row { font: 600 14px 'Inter', 'DejaVu Sans', sans-serif; fill: #b4bfce; }
-    .t { font: 400 14px 'JetBrains Mono', 'DejaVu Sans Mono', monospace; fill: #d6dbe3; }
-    .bad { font: 400 14px 'JetBrains Mono', 'DejaVu Sans Mono', monospace; fill: #fb7185; }
-    .good { font: 400 14px 'JetBrains Mono', 'DejaVu Sans Mono', monospace; fill: #5eead4; }
-    .m { font: 400 12.5px 'Inter', 'DejaVu Sans', sans-serif; fill: #8f9aab; }
-    .rule { stroke: rgba(255,255,255,0.12); stroke-width: 1; }
+    .bg { fill: #0c0c12; }
+    .std { fill: #2d0f16; stroke: #f87171; stroke-width: 1.2; }
+    .me { fill: #0c2a26; stroke: #34d399; stroke-width: 1.2; }
+    .h { font: 600 17px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #ffffff; }
+    .k { font: 600 15px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #8b949e; }
+    .p { font: 14px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #c3ccd8; }
+    .r { font: 14px ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; fill: #f87171; }
+    .g { font: 14px ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; fill: #34d399; }
   </style>
-  <rect width="900" height="560" rx="14" fill="#0b0b10"/>
+  <rect class="bg" width="440" height="860" rx="14"/>
+  <rect class="std" x="20" y="20" width="196" height="56" rx="6"/>
+  <text class="h" x="32" y="44">Stock Rust</text>
+  <text class="p" x="32" y="66">with std</text>
+  <rect class="me" x="224" y="20" width="196" height="56" rx="6"/>
+  <text class="h" x="236" y="44">me-hello.exe</text>
+  <text class="p" x="236" y="66">no_std, raw-dylib</text>
 
-  <rect x="200" y="20" width="340" height="56" rx="8" fill="#2a1219"/>
-  <rect x="550" y="20" width="330" height="56" rx="8" fill="#0d2427"/>
-  <text x="216" y="45" class="h">Stock Rust, with std</text>
-  <text x="216" y="66" class="m">fn main() { println!(…) }, same target</text>
-  <text x="566" y="45" class="h">me-hello.exe</text>
-  <text x="566" y="66" class="m">no_std, no_main, raw-dylib</text>
+  <text class="k" x="20" y="112">C runtime</text>
+  <text class="r" x="20" y="136">/defaultlib:msvcrt</text>
+  <text class="p" x="20" y="156">vcruntime140, UCRT</text>
+  <text class="g" x="236" y="136">none</text>
+  <text class="p" x="236" y="156">/NODEFAULTLIB</text>
 
-  <!-- Row: runtime -->
-  <text x="24" y="112" class="row">C runtime</text>
-  <text x="216" y="112" class="bad">/defaultlib:msvcrt</text>
-  <text x="216" y="132" class="m">vcruntime140.dll and the Universal CRT</text>
-  <text x="566" y="112" class="good">none (/NODEFAULTLIB)</text>
-  <line x1="20" y1="152" x2="880" y2="152" class="rule"/>
+  <text class="k" x="20" y="200">Import libraries</text>
+  <text class="r" x="20" y="224">kernel32.lib</text>
+  <text class="r" x="20" y="244">ntdll.lib userenv.lib</text>
+  <text class="r" x="20" y="264">ws2_32.lib dbghelp.lib</text>
+  <text class="g" x="236" y="224">none: the import</text>
+  <text class="g" x="236" y="244">table comes from</text>
+  <text class="g" x="236" y="264">#[link] blocks</text>
 
-  <!-- Row: import libs -->
-  <text x="24" y="180" class="row">Import libraries</text>
-  <text x="24" y="198" class="row">at link time</text>
-  <text x="216" y="180" class="bad">kernel32.lib ntdll.lib</text>
-  <text x="216" y="200" class="bad">userenv.lib ws2_32.lib</text>
-  <text x="216" y="220" class="bad">dbghelp.lib</text>
-  <text x="566" y="180" class="good">none: the import table is</text>
-  <text x="566" y="200" class="good">written from #[link] blocks</text>
-  <line x1="20" y1="240" x2="880" y2="240" class="rule"/>
+  <text class="k" x="20" y="308">Win32 functions</text>
+  <text class="p" x="20" y="332">139 in libstd</text>
+  <text class="r" x="20" y="352">38 of them ...W</text>
+  <text class="p" x="20" y="372">plus Nt* calls</text>
+  <text class="p" x="236" y="332">16 in total</text>
+  <text class="g" x="236" y="352">ANSI ...A or none</text>
+  <text class="p" x="236" y="372">kernel32 5, user32 10,</text>
+  <text class="p" x="236" y="392">gdi32 1</text>
 
-  <!-- Row: functions -->
-  <text x="24" y="268" class="row">Win32 functions</text>
-  <text x="24" y="286" class="row">referenced</text>
-  <text x="216" y="268" class="t">139 in libstd</text>
-  <text x="216" y="288" class="bad">38 of them ...W</text>
-  <text x="216" y="308" class="m">plus Nt* calls straight into ntdll</text>
-  <text x="566" y="268" class="t">16 in total</text>
-  <text x="566" y="288" class="good">ANSI ...A or no strings at all</text>
-  <text x="566" y="308" class="m">kernel32 5, user32 10, gdi32 1</text>
-  <line x1="20" y1="328" x2="880" y2="328" class="rule"/>
+  <text class="k" x="20" y="436">Examples</text>
+  <text class="r" x="20" y="460">WaitOnAddress</text>
+  <text class="r" x="20" y="480">ProcessPrng</text>
+  <text class="p" x="20" y="500">none before</text>
+  <text class="p" x="20" y="520">Windows 8 or 10</text>
+  <text class="g" x="236" y="460">CreateWindowExA</text>
+  <text class="g" x="236" y="480">TextOutA</text>
+  <text class="g" x="236" y="500">FindFirstFileA</text>
+  <text class="p" x="236" y="520">all in Windows 95</text>
 
-  <!-- Row: newest functions -->
-  <text x="24" y="356" class="row">Examples</text>
-  <text x="24" y="376" class="m">left: none exist</text>
-  <text x="24" y="392" class="m">before Windows 8</text>
-  <text x="216" y="356" class="bad">WaitOnAddress</text>
-  <text x="216" y="376" class="bad">GetSystemTimePreciseAsFileTime</text>
-  <text x="216" y="396" class="bad">ProcessPrng</text>
-  <text x="566" y="356" class="good">CreateWindowExA, TextOutA,</text>
-  <text x="566" y="376" class="good">FindFirstFileA ...</text>
-  <text x="566" y="396" class="m">all in Windows 95's own DLLs</text>
-  <line x1="20" y1="416" x2="880" y2="416" class="rule"/>
+  <text class="k" x="20" y="564">Oldest Windows</text>
+  <text class="p" x="20" y="588">Windows 10</text>
+  <text class="p" x="20" y="608">(7 with the tier-3</text>
+  <text class="p" x="20" y="628">win7 targets)</text>
+  <text class="p" x="236" y="588">Windows 95 by design</text>
+  <text class="p" x="236" y="608">run on Me, 95 OSR2.5</text>
+  <text class="p" x="236" y="628">and Wine</text>
 
-  <!-- Row: oldest Windows -->
-  <text x="24" y="444" class="row">Oldest Windows</text>
-  <text x="216" y="444" class="t">Windows 10</text>
-  <text x="216" y="464" class="m">Windows 7 with the tier-3 *-win7-* targets</text>
-  <text x="566" y="444" class="t">Windows 95 by design</text>
-  <text x="566" y="464" class="m">tested on Me, 95 OSR2.5 and Wine</text>
-  <line x1="20" y1="484" x2="880" y2="484" class="rule"/>
+  <text class="k" x="20" y="672">File size</text>
+  <text class="p" x="20" y="696">doesn't link here</text>
+  <text class="p" x="20" y="716">(no import libraries)</text>
+  <text class="g" x="236" y="696">2,560 bytes</text>
 
-  <text x="24" y="514" class="row">File size</text>
-  <text x="216" y="514" class="m">does not link here (no import libraries)</text>
-  <text x="566" y="514" class="t">2,560 bytes</text>
-  <text x="24" y="545" class="m">Counts from llvm-nm on libstd for i686-pc-windows-msvc (Rust 1.98) and llvm-objdump -p on me-hello.exe.</text>
+  <text class="p" x="20" y="766">Counts from llvm-nm on libstd for</text>
+  <text class="p" x="20" y="788">i686-pc-windows-msvc (Rust 1.98) and</text>
+  <text class="p" x="20" y="810">llvm-objdump -p on me-hello.exe.</text>
 </svg>
