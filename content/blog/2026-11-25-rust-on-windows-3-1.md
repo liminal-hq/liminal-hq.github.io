@@ -2,7 +2,7 @@
 title: "Cross-compiling to the past, part 2: Rust on Windows 3.1"
 date: "2026-11-25"
 slug: "rust-on-windows-3-1"
-excerpt: "A Rust program built on Linux can open a native Windows 3.1 dialog. Here’s how the compiler, executable packer and runtime let a 386 run it."
+excerpt: "A Rust program can ask Windows 3.1 for a real message box. Getting there took LLVM's code16 mode, a hand-built NE executable and import shims, and then a hunt for a crash that turned out to be a stack pointer the CPU only half restores."
 tags:
   - "Cross-compilation"
   - "Rust"
@@ -12,71 +12,208 @@ tags:
 draft: true
 ---
 
-After getting Lieutenant Fizz running on DOS, I wanted an installer. There was little about unpacking a file or recording where it went that was peculiar to a game. Someone installing a word processor would need much the same thing. What I wanted to change for Windows 3.1 was the part the person at the keyboard would see. Could I write the installer in Rust and have it look and behave like it belonged on that desktop?
+> **In this series: Cross-compiling to the past.** One portable Rust core, built on a modern Linux PC, carried to three old platforms. Quill, a small word processor built the same way, turns up along the way.
+>
+> 1. [Rust on DOS](/blog/rust-on-dos): a floppy-disk question, a 32-bit protected-mode runtime, and a Rust pipeline from Linux to DOS.
+> 2. **Rust on Windows 3.1** (this post): 16-bit code, a hand-built NE executable, and a crash that arrives with the timer.
+> 3. [Rust on Windows 95, 98 and Me](/blog/rust-on-windows-9x): why "any Win32 program" doesn't include Rust's, and what it takes to change that.
 
-For a first answer, one button was plenty.
+After getting Lieutenant Fizz and a text-mode installer running on DOS, I wanted a Windows 3.1 installer that didn't feel like a port bolted onto the side. Unpacking files and writing an install receipt aren't unique to DOS, and the installer's portable core already did all of that. What I wanted to change was what the person at the keyboard saw. Could a 16-bit Windows 3.1 application be written in Rust, with Windows itself drawing the title bar, the borders and the **OK** button?
 
-![Program Manager on Windows for Workgroups 3.11 with a dialog titled Liminal that reads “Hello from Rust, in 16-bit Windows”](/blog/rust-on-windows-3-1/wfw311-hello.png)
-*Windows for Workgroups 3.11 in DOSBox-X. Behind the message box are Eudora Light, Minesweeper and the rest of Program Manager.*
+The AI agent and I had been asking that question for a while. Rust mostly targets 32-bit systems and newer, so I was curious what LLVM could produce, and whether a shim could carry the idea the rest of the way. For a first answer, one dialog was plenty:
 
-Seeing that screenshot was the moment it felt real to me. Windows had drawn the box, given it a title bar and supplied the OK button. My Rust program had asked for it using the interface that applications on that desktop used. The compiler had even made use of 32-bit registers along the way. How do those belong in a 16-bit Windows program?
+![Program Manager on Windows for Workgroups 3.11 with a message box reading "Hello from Rust, in 16-bit Windows"](/blog/rust-on-windows-3-1/wfw311-hello.png)
+*`HELLO.EXE` on Windows for Workgroups 3.11 in DOSBox-X. After this box it opens a window, paints it with `TextOut` and runs a three-page wizard from its resources.*
 
-## What “16-bit” means to the processor
+Seeing that box over Program Manager, between Eudora Light, Minesweeper and Netscape, was really cool. Windows had drawn the box and supplied the controls, and a Rust program had asked for them through the native 16-bit Windows API. Someone else could now look at what it took and make their own 16-bit Windows program.
 
-Picture the build machine and the PC that opens the result. On Linux, the public toolchain uses Rust 1.98 with its library sources, the linker that ships with Rust, and Python 3.9 or later. Cargo builds Rust’s `core` library for a custom target. The application uses `#![no_std]` and supplies an entry point and a small runtime of its own. The old PC gets a Windows executable with that runtime inside. There’s no compiler to install there.
+Why Rust, when there were two other routes? Win32s, Microsoft's add-on that let some 32-bit programs run on Windows 3.1, would have to be installed before our installer could run, which defeats the point.
 
-These are the three fields in the target file that explain the trick:
+Open Watcom C builds real 16-bit Windows programs today, but it can't share a line with the installer's Rust core, so every fix would happen twice. Rust won, with Open Watcom kept as the reference and the fallback. This post explains how that works, and then why the first real installer built this way crashed now and then.
+
+## What Windows 3.1 expects from a program
+
+Picture a PC from 1992: a 386, a few megabytes of memory, a VGA screen and DOS on the hard disk. Windows 3.1 starts from the DOS prompt when you type `WIN` and takes over the screen with Program Manager. Programs share the machine by taking turns, each handling a message and then handing control back.
+
+It runs in two modes. Standard mode works on a 286. 386 Enhanced mode needs a 386 and gives each DOS window a virtual machine of its own. Windows for Workgroups 3.11, the version tested here, runs only in 386 Enhanced mode, and the Rust programs need a 386 too, for a reason the next sections explain.
+
+A Windows 3.x program is an **NE** file, for New Executable. It starts with a small DOS program that prints "This program requires Microsoft Windows" if you run it from DOS. After that come tables describing **segments**, separate pieces of code and data of at most 64 KiB each, which Windows reaches through **selectors** it assigns only when it loads the program. A linked program doesn't know its own selectors, and it certainly doesn't know where `USER.EXE` will put `MessageBox`.
+
+So every call into Windows is a **far call**, one that names a segment as well as an offset, and the file lists **fixups** telling the loader which bytes to patch with real addresses. Windows 3.1 also uses the **Pascal** calling convention: arguments are pushed left to right as 16-bit words, the function being called cleans them up, and functions are imported by number (`MessageBox` is `USER.1`, and the start-up call `INITTASK` is `KERNEL.91`).
+
+Think of a segment as a furnished room. The analogy holds for the 64 KiB size limit and for the loader moving furniture in at start-up, and it breaks at the walls: on a 386 the walls are enforced by hardware, and reading a single byte past the end stops the program with a General Protection Fault, Windows 3.x's message for a program that touched memory it doesn't own. Hold on to that image, because it's how the worst bug in this post works.
+
+## How 32-bit Rust emits 16-bit code
+
+Rust and LLVM expect 32-bit or 64-bit registers and pointers, and nobody maintains a 16-bit Windows target for either. LLVM does carry one niche target, built for x86 bootloaders, which also start life in 16-bit mode. Here are four fields of the target specification the toolchain uses:
 
 ```json
 {
   "llvm-target": "i386-unknown-none-code16",
   "cpu": "i386",
-  "target-pointer-width": 32
+  "features": "-mmx,-sse,-sse2,-sse3,-ssse3,-sse4.1,-sse4.2,-avx,-x87",
+  "rustc-abi": "softfloat"
 }
 ```
 
-LLVM, the code generator behind Rust, has a `code16` mode that can produce instructions for a 16-bit code segment. On a 386, an instruction in such a segment can carry a prefix that changes its operand size or address size. The CPU can add two 32-bit values or use a 32-bit register to find something on the stack, then go back to the segment’s usual defaults for the next instruction. That buys Rust room to use its 32-bit pointers and registers. It also puts the resulting program beyond the reach of a 286. The Windows 3.11 tests here used 386 Enhanced mode.
+`code16` emits instructions meant to run in a 16-bit code segment, while keeping most operations 32-bit by attaching one-byte prefixes (`66h` for a 32-bit operand, `67h` for a 32-bit address), which a 386 honours inside a 16-bit segment. Floating point is done in software, so a 386 without a maths coprocessor is fine. Here's a slice of the smallest program, disassembled as 16-bit code:
 
-There are still two other parties to satisfy. The Windows loader needs a file describing the segments it should create. Then, when our function calls Windows, both sides have to agree about what’s on the stack.
-
-## Follow one call to MessageBox
-
-Here’s the line at the heart of the toolchain’s smallest example. It asks for a box with a message, a title and an OK button.
-
-```rust
-unsafe { MessageBox(0, cs!("Hello from Rust"), cs!("Win16"), MB_OK) };
+```text
+  ab:   66 6a 00              pushd  0x0
+  bd:   66 e8 91 ff ff ff     calld  54 <MessageBox>
+  c3:   66 83 c4 10           add    esp,0x10
+  d2:   67 66 8b 74 24 14     mov    esi,DWORD PTR [esp+0x14]
 ```
 
-The text and title in this minimal example differ from the greeting in the screenshot. The machinery is the same. On Win16, the function lives in Windows’ USER module, where it can be imported by number. Its number is 1. The address it will occupy is up to Windows when the program loads.
+Two details in those four lines matter later. Calls between Rust functions are 32-bit near calls that stay inside one segment, which sets a 64 KiB ceiling on code. And every stack access uses all 32 bits of `ESP`, the stack pointer, which is going to collide head-on with Windows 3.11's timer.
 
-A build script generates a little assembly routine from a table of imports. The `MessageBox` entry tells it which arguments are words and which are pointers. Rust passes values according to the compiler’s conventions. The routine puts them in the order and widths expected by the Windows Pascal calling convention. For a string, Windows needs a *far pointer* consisting of a segment selector and an offset into that segment. The routine makes a far call into USER and, on return, restores registers that the Rust caller expects to keep. That’s what a shim amounts to here. You can point to the arguments it translates and to the instruction where responsibility passes to Windows.
+The prefixes also set the hardware floor. A 286 has no 32-bit registers, so it's out for good. Everything here targets a 386 in Enhanced mode; Standard mode on a 386 should execute the prefixes, but I haven't tested it.
 
-Where does the far call get its destination? After `rust-lld` links the code, the Python packer converts the ELF output to Windows’ New Executable (NE) format. It describes the code and data segments, names the imported module and leaves a *fixup* telling the loader which bytes to patch with the address of USER function 1. Windows assigns the selectors and fills in the call site. Only then can the running program follow that address into the code that draws the box.
+## Following one call to MessageBox
 
-![Layout of the original 620-byte message-box executable showing the code, data and four loader fixups](/blog/rust-on-windows-3-1/msgbox-ne-layout.svg)
-*The first version of the minimal example fit in 620 bytes. The fixups identify places Windows must complete once it knows where everything lives.*
+The whole program behind the smallest working Windows 3.1 executable is one function. A small runtime's `_start` calls `INITTASK` as its very first instruction, then `WaitEvent` and `InitApp`, and then this:
 
-## Why a wizard asks more of the runtime
+```rust
+#[unsafe(no_mangle)]
+pub extern "C" fn w16_main(_hinst: u32, _hprev: u32, _show: u32) -> u32 {
+	unsafe { MessageBox(0, cs!("Hello from Rust"), cs!("Win16"), MB_OK) };
+	0
+}
+```
 
-A message box spends most of its time waiting for a person. An installer can spend milliseconds in Rust decoding a project or copying a file between calls into Windows. That exposed a peculiarity of the stack, the memory used for local variables, saved registers and return addresses.
+`MessageBox` here is a generated shim. To cross from Rust into `USER.1`, a build script reads a compact import table, `tools/imports.tbl`, whose ordinals and argument counts come from Wine's 16-bit `.spec` files:
 
-The compiler uses the full 32-bit stack pointer, ESP. Its low 16 bits, SP, are enough for ordinary Windows code using the task’s 16-bit stack. Under Windows 3.11 in Enhanced mode, the upper half could change across a timer interrupt. SP could still point to the right byte as far as Windows was concerned. The next Rust instruction to use ESP could ask for a byte about two gigabytes beyond the segment.
+```text
+KERNEL 15 GlobalAlloc wl w
+USER 1 MessageBox wppw w
+USER 87 DialogBox wlwf w
+```
 
-A small probe made the difference visible. It stayed in a loop watching ESP and made no Windows calls. In 6.3 seconds it saw the upper half change to `8001` 130 times. Cleaning the register on the way back from each Windows function would leave the whole interval between calls exposed. Marking the entire stack as 32-bit fixed the probe but caused faults in Windows’ own kernel during uninstall. Each side had a legitimate expectation about the stack it was running on.
+Each letter is one argument: `w` a word, `l` a long, `p` a data pointer, `f` a code pointer. The generator writes a small assembly shim per row that turns Rust's 32-bit values into Pascal words and far pointers, makes the far call, and puts the CPU's state back when Windows returns.
 
-The experimental runtime gives the CPU two selectors for the same stack memory. One describes a 32-bit stack for Rust. The other is Windows’ original 16-bit selector. The assembly routines switch to the Windows selector immediately before calling Windows and switch back when Rust resumes. The bytes can stay put while the processor changes how it addresses them. [Stack handling and multi-segment toolchain work](https://github.com/liminal-hq-labs/rust-win16/pull/3)
+Linking needed one vintage trick. In an NE file both the code and the data segment start at offset 0, so `rust-lld` refuses with `virtual address range overlaps`. An `OVERLAY` in the linker script, a feature from the days when programs swapped parts of themselves through the same memory, gives both address 0 and keeps the first 16 bytes of data free for Windows' own bookkeeping (trimmed):
 
-## How much installer fits behind a Next button?
+```text
+OVERLAY 0 : AT(0x1000) {
+  .text { *(.text.start) *(.text .text.*) }
+  .data {
+    KEEP(*(.data.00_reserved))
+    *(.rodata .rodata.*) *(.data .data.*) *(.bss .bss.*)
+  }
+}
+```
 
-Here’s the screenshot that made me want to take the experiment further.
+Finally, `ne_pack.py` turns the linked ELF file into a real NE file: the DOS stub, the NE header, the segment table, the module names, any resources, and a relocation record for every far call.
 
-![The installer’s licence page with a scrolling licence, radio buttons and Back, Next and Cancel controls](/blog/rust-on-windows-3-1/uidemo-licence.png)
-*The Win16 interface running on Windows for Workgroups 3.11. The installer describes the page, and Windows provides its controls.*
+![Byte layout of MSGBOX.EXE: a DOS stub, the NE header and tables, a 261-byte code segment with four far-call sites, four relocation records pointing back at them, and a 44-byte data segment](/blog/rust-on-windows-3-1/msgbox-ne-layout.svg)
+*The whole of `MSGBOX.EXE`, 620 bytes. The four orange bands are the far calls the loader patches.*
 
-To Windows, accepting the licence is an interaction with a control. To the installer, it changes whether the user can proceed. The installer already has portable code for deciding which page follows, interpreting the project and writing its files. Somebody building an entirely different application could use the same Windows interface and supply their own meaning for that click.
+Open Watcom C builds the same message box in 1,478 bytes by default, or 1,250 built for size. That's a fun comparison and an unfair one, since Watcom's program runs on a 286 and ours needs a 386.
 
-There’s a size cost to bringing a useful engine along. A Win16 code segment holds at most 64 KiB. The compiler normally emits a near call between Rust functions, meaning the destination is inside the current segment. The combined engine and interface outgrew that space. We could run them separately, which is why a screenshot of the licence page and a successful install-engine run answer different questions.
+> **Six bugs that looked right until Windows 3.11 ran them.** Wine 11.21 still runs 16-bit programs and gave a fast inner loop, while Windows for Workgroups 3.11 in DOSBox-X enforced the real rules. Each of these looked right on paper or under Wine:
+>
+> 1. "Insufficient memory to run this application." The loader walks a chain of fixups ended by `0xFFFF`, and zeros at the call sites led the chain back to offset 0.
+> 2. A message box reading "Hello P omÅ". Windows keeps its bookkeeping in the first 16 bytes of the data segment, right where the first string had been.
+> 3. Death inside `INITTASK`. One instruction before it changed a register `INITTASK` reads.
+> 4. A dialog that never opened. NE resource lengths count alignment units, and the last resource came up a few bytes short.
+> 5. A General Protection Fault in `rep movsb`. Windows doesn't preserve the ES register, and Rust's block copies use it, so every shim now reloads it.
+> 6. `_lcreat` failing after a `mkdir`. The DOS call that made the directory changed registers the compiler thought were safe.
+>
+> With those fixed, a 14,944-byte installer proof ran on Windows for Workgroups 3.11, on Wine, and on Windows Me, which reports itself to 16-bit programs as Windows 3.95.
 
-The experimental packer can place functions in several code segments and insert short routines to reach a function in another segment. Its test program had 88 KB of code across five segments and checked its results against a second implementation. In DOSBox-X running Windows for Workgroups 3.11, it returned correct results in all 40 runs with the stack fix enabled. With the fix disabled, it produced wrong results in three of 20. That exercise gives larger projects a concrete way forward. A full run of the combined installer, Standard mode and physical hardware are separate tests still to make.
+## Why a wizard breaks what a message box hides
 
-For someone with a smaller idea, the distance to the desktop is shorter. The public examples already include a message box, a window that paints and responds to messages, and a small installer that copies a bundled file and writes a receipt. A Rust utility can have an ordinary place in Program Manager. The next question, on [Windows 95, 98 and Me](/blog/rust-on-windows-9x), is what it takes to earn the same place on a desktop that already speaks 32-bit Win32. [Win16 toolchain and examples](https://github.com/liminal-hq-labs/rust-win16)
+A message box spends nearly its whole life asleep inside Windows, waiting for a click. An installer spends milliseconds at a time inside Rust between API calls, decoding the project, running the install steps and unpacking compressed files.
+
+![A Windows 3.11 dialog titled Software License Agreement, with a scrolling licence, accept and decline buttons, and Back, Next and Cancel](/blog/rust-on-windows-3-1/uidemo-licence.png)
+*The installer's licence page on Windows for Workgroups 3.11 in DOSBox-X: real Windows controls, laid out from the same compiled project the DOS installer reads.*
+
+The first sign of trouble came from Quill's probe of what else Windows 3.11 changes across API calls. A **register** is one of the CPU's few named scratch slots, 32 bits wide on a 386, and 16-bit Windows was written to know only about the low halves. A 16-bit Windows function promises to preserve only SI, DI, BP and DS, while Rust keeps live values in the full EBX, ESI, EDI and EBP. Running two copies of the probe side by side gave this:
+
+```text
+GetVersion=05000A03 GetWinFlags=00000C29 386 Enhanced mode
+probe PeekMessage: EBX=55550000 ESI=6666BE02 EDI=7777BE03 EBP=8888BE04 ESP=800144AA ... CLOBBERED
+probe Yield via stub: EBX=1111BE01 ESI=2222BE02 EDI=3333BE03 EBP=4444BE04 ESP=000044D2 ... PRESERVED
+```
+
+The first copy had loaded `2222BE02` into ESI and got `6666BE02` back. The high half belonged to the other copy, which had run in the meantime. Across 326,235 rounds, raw calls changed the second copy's registers 150,316 times, and calls through the register-saving shims changed them zero times. Wine keeps the high halves intact, which is why Wine could never have caught this.
+
+Every shim now saves the full EBX, ESI, EDI and EBP, and clears the top half of ESP with `movzx esp, sp` after each call. That looked like the end of it.
+
+The installer itself was too big for one 64 KiB code segment, so it was built as two halves that fit, `ENGINE.EXE` for installing and uninstalling and `UIDEMO.EXE` for the pages, run on Windows for Workgroups 3.11 under DOSBox-X. Both ran. Both also died now and then. Of the last ten runs of `ENGINE.EXE`, five installs and five uninstalls, four ended in a General Protection Fault or a "Rust panic" box, each time somewhere new.
+
+A crash that moves around is the worst kind to chase.
+
+Clearing memory that Windows hands out without zeroing it was a real fix for a different problem: the project's notes record the failure rate falling from about 2 in 5 to about 1 in 6, without the run counts behind those figures, before a bigger build brought it back to 4 in 10.
+
+Then Quill's probe showed a four-way `match` compiled to a jump table that leapt to `0001:11D0`, in the middle of a `call` instruction. Turning jump tables off didn't stop the crashes either.
+
+Only later did someone notice that `11D0` was also Program Manager's window handle, printed a few lines earlier in the same log. The jump table hadn't been miscompiled. Something had written over it.
+
+## The clue was ESP going dirty about twenty times a second
+
+Every General Protection Fault had one thing in common: it hit a `rep movs` copying a value whose address was built from the stack pointer, such as `lea esi, [esp+x]`. And the probe's first line had shown `ESP=800144AA`, a stack pointer with something in its top half.
+
+So I wrote a probe that loops in assembly, touches no stack memory, makes no Windows calls, and checks the top 16 bits of ESP on every pass. In 6.3 seconds it caught ESP above `0xFFFF` 130 times, always `8001xxxx`. That's 20.6 times a second, close to the PC's standard 18.2 Hz timer; I don't know where the difference comes from.
+
+![A timeline: a shim clears ESP after a Windows call, Rust reads the stack safely, a timer tick leaves 8001 in the high half of ESP, and the next stack read faults past the end of the segment](/blog/rust-on-windows-3-1/esp-timeline.svg)
+*How a timer tick breaks a stack read. The ESP values follow the probe's pattern.*
+
+When an interrupt finishes on a 386 and returns to a 16-bit stack segment, the CPU restores only the 16-bit SP. The top half of ESP keeps whatever the system code left there, which in Windows 3.11's Enhanced mode is `8001`. Because code16 addresses the stack through all 32 bits of ESP, the next stack read asks for an offset about 2 GiB past the end of a 64 KiB segment, one step through the wall of the room.
+
+The hardware stops it. The same dirt is also the best explanation anyone has for the damaged jump table.
+
+That also explained why short stretches of Rust survived. Every shim ran `movzx esp, sp` on the way back from Windows and wiped the dirt before a tick could matter, while any few milliseconds of decoding or unpacking with no API call in between was likely to meet a tick.
+
+> **Two fixes that failed before the right one.**
+>
+> - Hooking the timer interrupts (INT 08h and INT 1Ch) to clean ESP in handlers of our own changed nothing: the counts were 129 and 133. The dirt is made after those handlers have run.
+> - Marking the task's whole stack 32-bit through DPMI took the count to zero and let installs complete. Uninstalls then faulted inside Windows' own `KRNL386` in 3 runs out of 3, because Windows' 16-bit kernel code now ran on a stack it was never written for.
+
+## The fix gives one stack two selectors
+
+Each side had a fair expectation about the stack it stood on, so the fix gives the CPU two selectors for the same stack memory:
+
+1. At start-up, `_start` asks DPMI, the protected-mode services Windows provides in Enhanced mode, for a second selector over the task's stack, marked 32-bit. Rust runs on that alias, so the 386 restores all 32 bits of ESP after every interrupt.
+2. Each import shim switches back to Windows' original 16-bit stack selector right before its far call, and to the alias right after, moving the alias if Windows has moved the data segment in the meantime. Windows only ever runs on the stack it gave the task.
+
+In a test loop of 4 million iterations inside `BIGSEG.EXE`, described below, ESP went dirty 4 to 7 times on the 16-bit stack and never on the alias.
+
+## Breaking the 64 KiB wall
+
+The other wall was code size. Because code16 only emits near calls, every Rust function had to fit in one 65,536-byte code segment with everything that calls it. The whole installer runtime first came to 121,725 bytes of code. A hand-written project decoder in place of `serde`'s generated one, a plain vector in place of a `BTreeMap` and no sorting at run time took it to 97,265, and the same change shrank the other runtimes too:
+
+| Runtime | Before | After | Measured as |
+|---|---|---|---|
+| Windows 3.1 | 121,725 | 97,265 | bytes of code |
+| DOS `SETUP.EXE` | 153,088 | 136,704 | bytes of file |
+| Windows 95 `SETUP.EXE` | 135,680 | 115,200 | bytes of file |
+
+The "after" builds come from a branch of the installer that hasn't been merged yet. Even then, once the Windows 95 work added shortcuts and an uninstaller to the shared install code, the joined Windows 3.1 installer came to 111,211 bytes, still too big for one segment.
+
+To remove the wall, the NE packer now places functions in several code segments itself, an approach Quill prototyped first and the shared toolchain took over. A call that crosses segments goes through a small far-jump veneer in the caller's segment. Tail calls and calls through function pointers go through a shadow return stack, and every function whose address is taken gets a slot at the same offset in every segment, so a pointer means the same function wherever it's called.
+
+Segments can even be discarded under memory pressure and reloaded on demand, through a gate that moves to the 16-bit stack while Windows does the reloading. The limits are 253 code segments and a 1 MB file, and no single function may be bigger than one segment.
+
+To prove both fixes together, there's `BIGSEG.EXE`: 88 KB of Rust code across five segments, with segment 3 discarded and reloaded on every run, jump tables turned back on, and every result checked against a second implementation. On Windows for Workgroups 3.11 in DOSBox-X it passed 40 runs out of 40 with the stack alias on. With the alias off, the same program gave wrong results in 3 runs out of 20, about 1 in 7, close to the installer's earlier 1 in 6. The stack code costs a little: the smallest program, `MSGBOX.EXE`, grew from 620 to 948 bytes.
+
+## Limits and what hasn't been tested
+
+- Only DOSBox-X has shown the fix. Since the cause is how a 386 returns to a 16-bit stack, I expect real hardware to behave the same, but no real 386 or 486, no other emulator and no Windows Me install has run the stack-alias build yet.
+- The multi-segment packer and the stack alias are in a pull request on the template, not merged yet. `BIGSEG.EXE` proves the toolchain; relinking the whole Windows 3.1 installer and passing its own runs on Windows 3.11 comes before I'll call that done.
+- No 286 and no Standard mode. Windows for Workgroups 3.11 refuses `WIN /S`, and Standard mode on a retail Windows 3.1 hasn't been tried.
+- No Program Manager group. Making one through a DDE conversation with Program Manager is still unbuilt.
+
+## Try it
+
+The Windows 3.x toolchain and its examples (`msgbox`, `hello`, a small installer, and `bigseg` in the open pull request) live in [liminal-hq-labs/rust-win16](https://github.com/liminal-hq-labs/rust-win16), and the installer's Windows 3.1 runtime is in `retro/win16/` of [liminal-hq-labs/liminal-installer](https://github.com/liminal-hq-labs/liminal-installer), on a branch not yet merged. You need `rustup` with `rust-src` and Python 3, and Wine is the fastest check before booting Windows 3.11 in DOSBox-X.
+
+## Credits
+
+**Wine** supplied every ordinal in `imports.tbl` and the fast half of the test loop. **Open Watcom** was the reference for the NE format, header by header, and remains the fallback. **DOSBox-X** ran Windows for Workgroups 3.11 faithfully enough to reproduce every bug in this post, timer ticks included.
+
+## Next
+
+The bet held: Rust can speak 16-bit Windows 3.1, given a 32-bit stack alias and a packer that bridges 64 KiB segments.
+
+In [Part 3](/blog/rust-on-windows-9x), the series climbs back up to 32 bits for Windows 95, 98 and Me, where Rust already has an official Windows target, and a plain hello world still won't start.
